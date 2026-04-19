@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FWS Image Prep - Help</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  line-height: 1.7;
+  color: #333;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+h1 {
+  text-align: center;
+  color: #2c5282;
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #718096;
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #3182ce;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+}
+
+.card h2 {
+  font-size: 22px;
+  color: #2d3748;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.card h3 {
+  font-size: 18px;
+  color: #4a5568;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.card p { margin-bottom: 12px; color: #4a5568; }
+
+.step-guide {
+  counter-reset: steps;
+  list-style: none;
+  padding: 0;
+}
+
+.step-guide li {
+  counter-increment: steps;
+  padding: 16px 16px 16px 60px;
+  margin-bottom: 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #3182ce;
+  position: relative;
+  font-size: 17px;
+}
+
+.step-guide li::before {
+  content: counter(steps);
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  width: 32px;
+  height: 32px;
+  background: #3182ce;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.step-guide li strong { color: #2d3748; }
+
+.tip {
+  background: #ebf8ff;
+  border: 1px solid #bee3f8;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 16px 0;
+  color: #2c5282;
+  font-size: 16px;
+}
+
+.tip::before {
+  content: "Tip: ";
+  font-weight: 700;
+}
+
+.warning {
+  background: #fffff0;
+  border: 1px solid #fefcbf;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 16px 0;
+  color: #975a16;
+  font-size: 16px;
+}
+
+.warning::before {
+  content: "Note: ";
+  font-weight: 700;
+}
+
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 16px;
+}
+
+.specs-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: #edf2f7;
+  color: #4a5568;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.specs-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #4a5568;
+}
+
+.faq-q {
+  font-weight: 700;
+  color: #2d3748;
+  margin-top: 20px;
+  margin-bottom: 6px;
+  font-size: 17px;
+}
+
+.faq-a {
+  color: #4a5568;
+  margin-bottom: 16px;
+  padding-left: 16px;
+  border-left: 3px solid #e2e8f0;
+}
+
+.toc {
+  list-style: none;
+  padding: 0;
+}
+
+.toc li {
+  margin-bottom: 8px;
+}
+
+.toc a {
+  color: #3182ce;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.toc a:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .container { padding: 16px 12px 40px; }
+  .card { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <a href="index.html" class="back-link">&larr; Back to Image Prep Tool</a>
+
+  <h1>Help &amp; Guide</h1>
+  <p class="subtitle">Everything you need to know about preparing your FWS submissions</p>
+
+  <!-- Table of Contents -->
+  <div class="card">
+    <h2>What's on This Page</h2>
+    <ul class="toc">
+      <li><a href="#quick-start">Quick Start (5 easy steps)</a></li>
+      <li><a href="#show-specs">Show Specifications</a></li>
+      <li><a href="#step-by-step">Detailed Step-by-Step Guide</a></li>
+      <li><a href="#filenames">How Filenames Work</a></li>
+      <li><a href="#faq">Common Questions</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+  </div>
+
+  <!-- Quick Start -->
+  <div class="card" id="quick-start">
+    <h2>Quick Start</h2>
+    <p>Here's the short version. If you need more detail, see the step-by-step guide below.</p>
+
+    <ol class="step-guide">
+      <li><strong>Open the tool</strong> &mdash; Double-click <code>index.html</code> to open it in your web browser.</li>
+      <li><strong>Upload your painting</strong> &mdash; Drag your image file onto the dotted area, or click to browse for it.</li>
+      <li><strong>Pick your show type</strong> &mdash; Click "Juried Show" or "Non-Juried Show."</li>
+      <li><strong>Enter your painting title and entry number</strong> &mdash; Type the title exactly as you want it to appear. Choose Entry #1 or Entry #2.</li>
+      <li><strong>Click "Prepare My Image" then "Download"</strong> &mdash; Your image is resized, renamed, and ready to submit.</li>
+    </ol>
+
+    <div class="tip">Your images never leave your computer. All the processing happens right in your browser &mdash; nothing is uploaded to the internet.</div>
+  </div>
+
+  <!-- Show Specs -->
+  <div class="card" id="show-specs">
+    <h2>Show Specifications</h2>
+    <p>The Florida Watercolor Society has different image requirements depending on the type of show. The tool handles all of this for you automatically.</p>
+
+    <table class="specs-table">
+      <tr>
+        <th>Requirement</th>
+        <th>Juried Show</th>
+        <th>Non-Juried Show</th>
+      </tr>
+      <tr>
+        <td>Longest side</td>
+        <td>1800 pixels</td>
+        <td>600 pixels</td>
+      </tr>
+      <tr>
+        <td>Resolution</td>
+        <td>72 DPI</td>
+        <td>72 DPI</td>
+      </tr>
+      <tr>
+        <td>File format</td>
+        <td>JPEG</td>
+        <td>JPEG</td>
+      </tr>
+      <tr>
+        <td>Color profile</td>
+        <td>sRGB</td>
+        <td>sRGB</td>
+      </tr>
+      <tr>
+        <td>Maximum file size</td>
+        <td>5 MB</td>
+        <td>5 MB</td>
+      </tr>
+    </table>
+
+    <div class="tip">You don't need to remember these numbers. Just pick the show type and the tool takes care of the rest.</div>
+  </div>
+
+  <!-- Detailed Step-by-Step -->
+  <div class="card" id="step-by-step">
+    <h2>Detailed Step-by-Step Guide</h2>
+
+    <h3>Step 1: Open the Tool</h3>
+    <p>Find the file called <strong>index.html</strong> on your computer and double-click it. It will open in your web browser (Chrome, Safari, Edge, or Firefox all work).</p>
+    <p>You'll see a page titled "FWS Image Prep" with a dotted upload area.</p>
+
+    <h3>Step 2: Upload Your Painting Image</h3>
+    <p>You have two ways to add your image:</p>
+    <ul style="margin-left: 24px; margin-bottom: 12px;">
+      <li><strong>Drag and drop</strong> &mdash; Find the image file on your computer and drag it onto the dotted area.</li>
+      <li><strong>Click to browse</strong> &mdash; Click anywhere in the dotted area. A file picker will open so you can navigate to your image.</li>
+    </ul>
+    <p>The tool accepts JPEG, PNG, and TIFF image files. After you upload, you'll see a small preview of your painting along with its current size.</p>
+    <p>Click <strong>Next</strong> to continue.</p>
+
+    <div class="tip">Use the highest-quality image you have. The tool will resize it down, but it can't add detail to a small image.</div>
+
+    <h3>Step 3: Choose Your Show Type</h3>
+    <p>You'll see two large buttons:</p>
+    <ul style="margin-left: 24px; margin-bottom: 12px;">
+      <li><strong>Juried Show</strong> &mdash; For juried exhibitions. Your image will be resized so the longest side is exactly 1800 pixels.</li>
+      <li><strong>Non-Juried Show</strong> &mdash; For member shows and non-juried exhibitions. Your image will be resized so the longest side is exactly 600 pixels.</li>
+    </ul>
+    <p>"Juried Show" is selected by default. Click the other button if you need "Non-Juried Show" instead.</p>
+    <p>Click <strong>Next</strong> to continue.</p>
+
+    <h3>Step 4: Enter Your Painting Details</h3>
+    <p><strong>Painting Title:</strong> Type the title of your painting exactly as you want it in the filename. For example: <em>Sunset Over Tampa Bay</em></p>
+    <p><strong>Entry Number:</strong> FWS allows up to 2 entries per show. Click <strong>Entry #1</strong> for your first painting or <strong>Entry #2</strong> for your second.</p>
+    <p>Below the form, you'll see a preview of what the filename will look like, for example:</p>
+    <p style="background: #f7fafc; padding: 10px 16px; border-radius: 6px; font-family: monospace; font-size: 15px;">GALLIONcarol#1_Sunset Over Tampa Bay.jpg</p>
+
+    <h3>Step 5: Prepare and Download</h3>
+    <p>Click the big <strong>"Prepare My Image"</strong> button. The tool will:</p>
+    <ul style="margin-left: 24px; margin-bottom: 12px;">
+      <li>Resize your image to the right dimensions</li>
+      <li>Convert it to JPEG format</li>
+      <li>Set the resolution to 72 DPI</li>
+      <li>Set the color profile to sRGB</li>
+      <li>Make sure the file is under 5 MB</li>
+      <li>Name it correctly for FWS</li>
+    </ul>
+    <p>You'll see your original image side by side with the processed version, along with details about both.</p>
+    <p>Click the green <strong>"Download"</strong> button to save the file to your computer. That's the file you'll upload to the FWS submission system.</p>
+
+    <div class="tip">If you have a second painting to submit, click "Prepare Another Image" and repeat the process. Remember to choose Entry #2 for your second painting.</div>
+  </div>
+
+  <!-- Filenames -->
+  <div class="card" id="filenames">
+    <h2>How Filenames Work</h2>
+    <p>The FWS requires a specific filename format. The tool creates this automatically:</p>
+    <p style="background: #f7fafc; padding: 10px 16px; border-radius: 6px; font-family: monospace; font-size: 15px; margin-bottom: 12px;">
+      GALLIONcarol#<em>[number]</em>_<em>[painting title]</em>.jpg
+    </p>
+    <p>Here's how the parts break down:</p>
+    <ul style="margin-left: 24px; margin-bottom: 12px;">
+      <li><strong>GALLION</strong> &mdash; Last name in uppercase</li>
+      <li><strong>carol</strong> &mdash; First name in lowercase</li>
+      <li><strong>#1</strong> or <strong>#2</strong> &mdash; Which entry this is</li>
+      <li><strong>_</strong> &mdash; Underscore separator</li>
+      <li><strong>Painting title</strong> &mdash; Exactly what you typed</li>
+      <li><strong>.jpg</strong> &mdash; File extension</li>
+    </ul>
+
+    <p><strong>Examples:</strong></p>
+    <ul style="margin-left: 24px; margin-bottom: 12px; font-family: monospace; font-size: 15px;">
+      <li>GALLIONcarol#1_Sunset Over Tampa Bay.jpg</li>
+      <li>GALLIONcarol#2_Morning Mist.jpg</li>
+    </ul>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card" id="faq">
+    <h2>Common Questions</h2>
+
+    <p class="faq-q">What image formats can I upload?</p>
+    <p class="faq-a">JPEG, PNG, and TIFF files. If your image came from a camera or phone, it's almost certainly one of these formats already.</p>
+
+    <p class="faq-q">Will this change my original image?</p>
+    <p class="faq-a">No. Your original file is never modified. The tool creates a brand new copy with the right settings. Your original stays exactly as it was.</p>
+
+    <p class="faq-q">Does this upload my images to the internet?</p>
+    <p class="faq-a">No. Everything happens entirely on your computer, inside your web browser. Your images are never sent anywhere. You don't even need an internet connection to use this tool.</p>
+
+    <p class="faq-q">What if my image is smaller than the required size?</p>
+    <p class="faq-a">The tool will not stretch or enlarge your image, because that would make it look blurry. Instead, it will show you a note explaining that your image is smaller than recommended. For best results, start with the largest, highest-quality image you have.</p>
+
+    <p class="faq-q">What does "72 DPI" mean?</p>
+    <p class="faq-a">DPI stands for "dots per inch." It's a technical setting that tells screens and printers how to display the image. The FWS requires 72 DPI, and the tool sets this automatically. You don't need to worry about it.</p>
+
+    <p class="faq-q">What does "sRGB" mean?</p>
+    <p class="faq-a">sRGB is a standard way of representing colors that ensures your painting looks consistent on different screens. The tool converts your image to sRGB automatically.</p>
+
+    <p class="faq-q">Can I prepare images for someone other than Carol Gallion?</p>
+    <p class="faq-a">This version of the tool is set up specifically for Carol Gallion and creates filenames with her name. To use it for a different artist, the tool would need to be modified.</p>
+
+    <p class="faq-q">What browser should I use?</p>
+    <p class="faq-a">Any modern browser works: Google Chrome, Microsoft Edge, Mozilla Firefox, or Apple Safari. If you're on a very old browser and something doesn't work, try updating your browser or switching to Chrome.</p>
+
+    <p class="faq-q">Can I use this on my iPad or tablet?</p>
+    <p class="faq-a">Yes. Open the file in your tablet's web browser. The layout adjusts to fit smaller screens. You'll tap instead of click, but everything works the same way.</p>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="card" id="troubleshooting">
+    <h2>Troubleshooting</h2>
+
+    <p class="faq-q">I see a blank page when I open the file.</p>
+    <p class="faq-a">Make sure you're opening <strong>index.html</strong>, not one of the other files. Also make sure the file <strong>app.js</strong> is in the same folder as index.html &mdash; the tool needs both files to work.</p>
+
+    <p class="faq-q">The tool says "Please choose an image file."</p>
+    <p class="faq-a">The file you selected isn't recognized as an image. Make sure you're choosing a JPEG, PNG, or TIFF file. If your file has an unusual extension, try renaming it to end in .jpg or .png.</p>
+
+    <p class="faq-q">The download button doesn't seem to work.</p>
+    <p class="faq-a">Some browsers handle downloads differently. Try right-clicking (or long-pressing on a tablet) the Download button and choosing "Save link as..." or "Download linked file."</p>
+
+    <p class="faq-q">My processed image looks different from the original.</p>
+    <p class="faq-a">Small color shifts can happen when converting between color profiles. The processed image uses sRGB, which is the standard the FWS requires. The difference should be very subtle.</p>
+
+    <p class="faq-q">Where did my downloaded file go?</p>
+    <p class="faq-a">Check your <strong>Downloads</strong> folder. On most computers, that's where your browser saves files. Look for a file starting with "GALLIONcarol."</p>
+
+    <p class="faq-q">Something else went wrong.</p>
+    <p class="faq-a">Try refreshing the page (press F5 or the reload button in your browser) and start over. If the problem persists, try a different web browser.</p>
+  </div>
+</div>
+
+</body>
+</html>
