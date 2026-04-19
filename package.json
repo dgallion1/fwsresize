@@ -1,0 +1,17 @@
+{
+  "name": "mom",
+  "version": "1.0.0",
+  "description": "Prepares watercolor painting images for Florida Watercolor Society show submissions.",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
+  }
+}

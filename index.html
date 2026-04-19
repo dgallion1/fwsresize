@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FWS Image Prep</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #333;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+h1 {
+  text-align: center;
+  color: #2c5282;
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #718096;
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+/* Steps indicator */
+.steps-bar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.step-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.step-dot.active {
+  background: #3182ce;
+  color: #fff;
+}
+
+.step-dot.done {
+  background: #48bb78;
+  color: #fff;
+}
+
+/* Sections */
+.step-section {
+  display: none;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.step-section.visible { display: block; }
+
+.step-section h2 {
+  font-size: 22px;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.step-section p.instructions {
+  color: #718096;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+/* Upload area */
+.upload-area {
+  border: 3px dashed #cbd5e0;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f7fafc;
+}
+
+.upload-area:hover, .upload-area.drag-over {
+  border-color: #3182ce;
+  background: #ebf4ff;
+}
+
+.upload-area .icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+  color: #a0aec0;
+}
+
+.upload-area .label {
+  font-size: 18px;
+  color: #4a5568;
+  margin-bottom: 8px;
+}
+
+.upload-area .sublabel {
+  font-size: 14px;
+  color: #a0aec0;
+}
+
+input[type="file"] { display: none; }
+
+.original-preview {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.original-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.original-info {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #718096;
+}
+
+/* Show type cards */
+.show-type-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.show-card {
+  flex: 1;
+  border: 3px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 20px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.show-card:hover { border-color: #90cdf4; }
+
+.show-card.selected {
+  border-color: #3182ce;
+  background: #ebf8ff;
+}
+
+.show-card h3 {
+  font-size: 20px;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.show-card .specs {
+  font-size: 14px;
+  color: #718096;
+  line-height: 1.6;
+}
+
+/* Form fields */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 6px;
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 18px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus {
+  border-color: #3182ce;
+}
+
+.entry-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.entry-btn {
+  flex: 1;
+  padding: 14px;
+  font-size: 18px;
+  font-weight: 600;
+  border: 3px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #4a5568;
+}
+
+.entry-btn:hover { border-color: #90cdf4; }
+
+.entry-btn.selected {
+  border-color: #3182ce;
+  background: #ebf8ff;
+  color: #2c5282;
+}
+
+.filename-preview {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f7fafc;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #4a5568;
+  word-break: break-all;
+}
+
+.filename-preview strong { color: #2d3748; }
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 54px;
+}
+
+.btn-primary {
+  background: #3182ce;
+  color: #fff;
+}
+
+.btn-primary:hover { background: #2b6cb0; }
+
+.btn-success {
+  background: #48bb78;
+  color: #fff;
+}
+
+.btn-success:hover { background: #38a169; }
+
+.btn-outline {
+  background: #fff;
+  color: #3182ce;
+  border: 2px solid #3182ce;
+}
+
+.btn-outline:hover { background: #ebf8ff; }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.btn-row .btn { flex: 1; text-align: center; }
+
+/* Processing spinner */
+.processing-overlay {
+  display: none;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.processing-overlay.visible { display: block; }
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3182ce;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Results */
+.comparison {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.comparison .panel {
+  flex: 1;
+  text-align: center;
+}
+
+.comparison .panel h3 {
+  font-size: 16px;
+  color: #718096;
+  margin-bottom: 8px;
+}
+
+.comparison .panel img {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.metadata-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  font-size: 15px;
+}
+
+.metadata-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f7fafc;
+  color: #718096;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.metadata-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #4a5568;
+}
+
+.success-msg {
+  background: #f0fff4;
+  border: 1px solid #c6f6d5;
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: #276749;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+/* Warning */
+.warning {
+  background: #fffff0;
+  border: 1px solid #fefcbf;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #975a16;
+  font-size: 15px;
+  margin-top: 12px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .show-type-cards { flex-direction: column; }
+  .comparison { flex-direction: column; }
+  .btn-row { flex-direction: column; }
+  .container { padding: 16px 12px 40px; }
+  .step-section { padding: 24px 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>FWS Image Prep</h1>
+  <p class="subtitle">Prepare your paintings for Florida Watercolor Society submissions</p>
+
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-dot" id="dot-3">3</div>
+    <div class="step-dot" id="dot-4">4</div>
+  </div>
+
+  <!-- STEP 1: Upload -->
+  <div class="step-section visible" id="step-1">
+    <h2>Upload Your Painting</h2>
+    <p class="instructions">Choose the image of the painting you want to submit.</p>
+
+    <div class="upload-area" id="upload-area">
+      <span class="icon">&#128444;</span>
+      <div class="label">Drop your image here, or click to choose a file</div>
+      <div class="sublabel">JPEG, PNG, or TIFF</div>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+
+    <div class="original-preview" id="original-preview" style="display:none;">
+      <img id="preview-img" alt="Your painting">
+      <div class="original-info" id="original-info"></div>
+    </div>
+
+    <div class="btn-row" id="upload-next-row" style="display:none;">
+      <button class="btn btn-primary" onclick="FWSApp.goToStep(2)">Next</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Show Type -->
+  <div class="step-section" id="step-2">
+    <h2>Choose Show Type</h2>
+    <p class="instructions">Pick the type of show you are entering.</p>
+
+    <div class="show-type-cards">
+      <div class="show-card selected" id="card-juried" onclick="FWSApp.selectShowType('juried')">
+        <h3>Juried Show</h3>
+        <div class="specs">
+          Longest side: 1800 pixels<br>
+          72 DPI &middot; JPEG format<br>
+          Under 5 MB
+        </div>
+      </div>
+      <div class="show-card" id="card-nonjuried" onclick="FWSApp.selectShowType('nonjuried')">
+        <h3>Non-Juried Show</h3>
+        <div class="specs">
+          Longest side: 600 pixels<br>
+          72 DPI &middot; JPEG format<br>
+          Under 5 MB
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="FWSApp.goToStep(1)">Back</button>
+      <button class="btn btn-primary" onclick="FWSApp.goToStep(3)">Next</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Painting Details -->
+  <div class="step-section" id="step-3">
+    <h2>Painting Details</h2>
+    <p class="instructions">Enter the title of your painting and which entry this is.</p>
+
+    <div class="form-group">
+      <label for="painting-title">Painting Title</label>
+      <input type="text" id="painting-title" placeholder="e.g. Sunset Over Tampa Bay" oninput="FWSApp.updateFilenamePreview()">
+    </div>
+
+    <div class="form-group">
+      <label>Entry Number</label>
+      <div class="entry-buttons">
+        <button class="entry-btn selected" id="entry-1" onclick="FWSApp.selectEntry(1)">Entry #1</button>
+        <button class="entry-btn" id="entry-2" onclick="FWSApp.selectEntry(2)">Entry #2</button>
+      </div>
+    </div>
+
+    <div class="filename-preview" id="filename-preview">
+      <strong>Filename will be:</strong> <span id="filename-text">GALLIONcarol#1_.jpg</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="FWSApp.goToStep(2)">Back</button>
+      <button class="btn btn-primary" id="process-btn" onclick="FWSApp.processImage()">Prepare My Image</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Results -->
+  <div class="step-section" id="step-4">
+    <div class="processing-overlay visible" id="processing-spinner">
+      <div class="spinner"></div>
+      <p>Preparing your image&hellip;</p>
+    </div>
+
+    <div id="results" style="display:none;">
+      <h2>Your Image is Ready</h2>
+
+      <div class="success-msg" id="success-msg"></div>
+
+      <div class="comparison">
+        <div class="panel">
+          <h3>Original</h3>
+          <img id="result-original" alt="Original">
+        </div>
+        <div class="panel">
+          <h3>Processed</h3>
+          <img id="result-processed" alt="Processed">
+        </div>
+      </div>
+
+      <table class="metadata-table">
+        <tr>
+          <th></th>
+          <th>Original</th>
+          <th>Processed</th>
+        </tr>
+        <tr>
+          <td><strong>Dimensions</strong></td>
+          <td id="meta-orig-dims"></td>
+          <td id="meta-proc-dims"></td>
+        </tr>
+        <tr>
+          <td><strong>File Size</strong></td>
+          <td id="meta-orig-size"></td>
+          <td id="meta-proc-size"></td>
+        </tr>
+        <tr>
+          <td><strong>Format</strong></td>
+          <td id="meta-orig-format"></td>
+          <td>JPEG (Baseline), sRGB, 72 DPI</td>
+        </tr>
+      </table>
+
+      <div id="size-warning" class="warning" style="display:none;"></div>
+
+      <div class="btn-row">
+        <a class="btn btn-success" id="download-btn" download>Download</a>
+        <button class="btn btn-outline" onclick="FWSApp.startOver()">Prepare Another Image</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  FWSApp.initUploadListeners();
+</script>
+</body>
+</html>
