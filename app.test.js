@@ -88,6 +88,16 @@ describe('buildFilename', () => {
     expect(app.buildFilename("Carol's Painting", 1))
       .toBe("GALLIONcarol#1_Carol's Painting.jpg");
   });
+
+  test('sanitizes filesystem-invalid title characters', () => {
+    expect(app.buildFilename('Sky / Water: Study?*', 2))
+      .toBe('GALLIONcarol#2_Sky Water Study.jpg');
+  });
+
+  test('trims trailing dots and spaces from title', () => {
+    expect(app.buildFilename('Evening Light.   ', 1))
+      .toBe('GALLIONcarol#1_Evening Light.jpg');
+  });
 });
 
 describe('calcResize', () => {
@@ -525,6 +535,69 @@ describe('handleFile', () => {
     global.FileReader = origFileReader;
     global.Image = origImage;
   });
+
+  test('shows an alert when FileReader fails', () => {
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const origFileReader = global.FileReader;
+    const mockFileReader = function () {
+      this.readAsDataURL = function () {
+        this.onerror(new Error('read failed'));
+      };
+    };
+    global.FileReader = mockFileReader;
+
+    const file = new File(['test'], 'painting.tiff', { type: 'image/tiff' });
+    app.handleFile(file);
+
+    expect(app.getState().originalFile).toBeNull();
+    expect(app.getState().originalImage).toBeNull();
+    expect(document.getElementById('original-preview').style.display).toBe('none');
+    expect(document.getElementById('upload-next-row').style.display).toBe('none');
+    expect(alertMock).toHaveBeenCalledWith(
+      'The image file could not be read. Please try a different JPEG, PNG, or TIFF file.'
+    );
+
+    global.FileReader = origFileReader;
+    alertMock.mockRestore();
+  });
+
+  test('shows an alert when the browser cannot decode the image', () => {
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const origFileReader = global.FileReader;
+    const mockFileReader = function () {
+      this.readAsDataURL = function () {
+        this.onload({ target: { result: 'data:image/tiff;base64,fakedata' } });
+      };
+    };
+    global.FileReader = mockFileReader;
+
+    const origImage = global.Image;
+    global.Image = function () {
+      const img = {};
+      Object.defineProperty(img, 'src', {
+        set: function () {
+          if (img.onerror) img.onerror(new Error('decode failed'));
+        },
+        configurable: true,
+      });
+      return img;
+    };
+
+    const file = new File(['test'], 'painting.tiff', { type: 'image/tiff' });
+    app.handleFile(file);
+
+    expect(app.getState().originalFile).toBeNull();
+    expect(app.getState().originalImage).toBeNull();
+    expect(document.getElementById('original-preview').style.display).toBe('none');
+    expect(document.getElementById('upload-next-row').style.display).toBe('none');
+    expect(alertMock).toHaveBeenCalledWith(
+      'This image format could not be opened in your browser. Please try a JPEG or PNG file.'
+    );
+
+    global.FileReader = origFileReader;
+    global.Image = origImage;
+    alertMock.mockRestore();
+  });
 });
 
 describe('startOver', () => {
@@ -700,9 +773,7 @@ describe('exportWithSizeLimit', () => {
     };
 
     const result = await app.exportWithSizeLimit(canvas, 5 * 1024 * 1024);
-    // Should stop when quality drops to ~0.27 (below 0.3)
-    // 0.92, 0.87, 0.82, 0.77, 0.72, 0.67, 0.62, 0.57, 0.52, 0.47, 0.42, 0.37, 0.32, 0.27 → stop
-    expect(result.quality).toBeLessThan(0.31);
+    expect(result.quality).toBeCloseTo(0.3);
     expect(result.blob).toBe(largeBlob); // still large, but we gave up
   });
 });
@@ -889,6 +960,49 @@ describe('processImage', () => {
     expect(result.dims.width).toBe(600);
     expect(result.dims.height).toBe(300);
     expect(document.getElementById('meta-orig-format').textContent).toBe('PNG');
+
+    document.createElement.mockRestore();
+  });
+
+  test('uses sanitized filename for download output', async () => {
+    const state = app.getState();
+    state.originalImage = { naturalWidth: 2000, naturalHeight: 1000 };
+    state.originalFile = new File(['x'], 'test.jpeg', { type: 'image/jpeg' });
+    state.showType = 'juried';
+    state.entryNumber = 2;
+
+    document.getElementById('painting-title').value = 'Sky / Water: Study?*';
+    document.getElementById('preview-img').src = 'data:image/jpeg;base64,test';
+
+    const fakeJpeg = new Uint8Array(20);
+    fakeJpeg[0] = 0xFF; fakeJpeg[1] = 0xD8;
+    fakeJpeg[2] = 0xFF; fakeJpeg[3] = 0xE0;
+    fakeJpeg[4] = 0x00; fakeJpeg[5] = 0x10;
+    fakeJpeg[6] = 0x4A; fakeJpeg[7] = 0x46; fakeJpeg[8] = 0x49; fakeJpeg[9] = 0x46; fakeJpeg[10] = 0x00;
+    fakeJpeg[11] = 0x01; fakeJpeg[12] = 0x02;
+    const fakeBlob = new Blob([fakeJpeg], { type: 'image/jpeg' });
+
+    const mockCtx = { drawImage: jest.fn() };
+    const origCreateElement = document.createElement.bind(document);
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0, height: 0,
+          getContext: () => mockCtx,
+          toBlob: (cb) => cb(fakeBlob),
+        };
+      }
+      return origCreateElement(tag);
+    });
+    URL.createObjectURL.mockReturnValue('blob:fake');
+
+    const promise = app.processImage();
+    jest.advanceTimersByTime(50);
+    const result = await promise;
+
+    expect(result.filename).toBe('GALLIONcarol#2_Sky Water Study.jpg');
+    expect(document.getElementById('download-btn').download)
+      .toBe('GALLIONcarol#2_Sky Water Study.jpg');
 
     document.createElement.mockRestore();
   });

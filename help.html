@@ -290,6 +290,7 @@ h1 {
       <li><strong>Click to browse</strong> &mdash; Click anywhere in the dotted area. A file picker will open so you can navigate to your image.</li>
     </ul>
     <p>The tool accepts JPEG, PNG, and TIFF image files. After you upload, you'll see a small preview of your painting along with its current size.</p>
+    <div class="warning">Some browsers do not open every TIFF file reliably. If that happens, the tool will tell you and you can retry with a JPEG or PNG copy.</div>
     <p>Click <strong>Next</strong> to continue.</p>
 
     <div class="tip">Use the highest-quality image you have. The tool will resize it down, but it can't add detail to a small image.</div>
@@ -305,6 +306,7 @@ h1 {
 
     <h3>Step 4: Enter Your Painting Details</h3>
     <p><strong>Painting Title:</strong> Type the title of your painting exactly as you want it in the filename. For example: <em>Sunset Over Tampa Bay</em></p>
+    <p>If your title contains characters that are not allowed in downloaded filenames, the tool removes them automatically while keeping the title as close as possible to what you typed.</p>
     <p><strong>Entry Number:</strong> FWS allows up to 2 entries per show. Click <strong>Entry #1</strong> for your first painting or <strong>Entry #2</strong> for your second.</p>
     <p>Below the form, you'll see a preview of what the filename will look like, for example:</p>
     <p style="background: #f7fafc; padding: 10px 16px; border-radius: 6px; font-family: monospace; font-size: 15px;">GALLIONcarol#1_Sunset Over Tampa Bay.jpg</p>
@@ -338,7 +340,7 @@ h1 {
       <li><strong>carol</strong> &mdash; First name in lowercase</li>
       <li><strong>#1</strong> or <strong>#2</strong> &mdash; Which entry this is</li>
       <li><strong>_</strong> &mdash; Underscore separator</li>
-      <li><strong>Painting title</strong> &mdash; Exactly what you typed</li>
+      <li><strong>Painting title</strong> &mdash; What you typed, with filename-invalid characters removed automatically if needed</li>
       <li><strong>.jpg</strong> &mdash; File extension</li>
     </ul>
 
@@ -346,6 +348,7 @@ h1 {
     <ul style="margin-left: 24px; margin-bottom: 12px; font-family: monospace; font-size: 15px;">
       <li>GALLIONcarol#1_Sunset Over Tampa Bay.jpg</li>
       <li>GALLIONcarol#2_Morning Mist.jpg</li>
+      <li>GALLIONcarol#1_Sky Water Study.jpg</li>
     </ul>
   </div>
 
@@ -354,7 +357,7 @@ h1 {
     <h2>Common Questions</h2>
 
     <p class="faq-q">What image formats can I upload?</p>
-    <p class="faq-a">JPEG, PNG, and TIFF files. If your image came from a camera or phone, it's almost certainly one of these formats already.</p>
+    <p class="faq-a">JPEG, PNG, and TIFF files. If your browser cannot open a TIFF, save or export a JPEG or PNG copy and use that instead.</p>
 
     <p class="faq-q">Will this change my original image?</p>
     <p class="faq-a">No. Your original file is never modified. The tool creates a brand new copy with the right settings. Your original stays exactly as it was.</p>
@@ -389,7 +392,10 @@ h1 {
     <p class="faq-a">Make sure you're opening <strong>index.html</strong>, not one of the other files. Also make sure the file <strong>app.js</strong> is in the same folder as index.html &mdash; the tool needs both files to work.</p>
 
     <p class="faq-q">The tool says "Please choose an image file."</p>
-    <p class="faq-a">The file you selected isn't recognized as an image. Make sure you're choosing a JPEG, PNG, or TIFF file. If your file has an unusual extension, try renaming it to end in .jpg or .png.</p>
+    <p class="faq-a">The file you selected isn't recognized as an image. Make sure you're choosing a JPEG, PNG, or TIFF file. If your file has an unusual extension, try exporting or saving it as .jpg or .png first.</p>
+
+    <p class="faq-q">I picked a TIFF, but nothing happened.</p>
+    <p class="faq-a">If the browser cannot decode that TIFF file, the tool shows a message and clears the partial upload. Save the image as JPEG or PNG, then try again.</p>
 
     <p class="faq-q">The download button doesn't seem to work.</p>
     <p class="faq-a">Some browsers handle downloads differently. Try right-clicking (or long-pressing on a tablet) the Download button and choosing "Save link as..." or "Download linked file."</p>

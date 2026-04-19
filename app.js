@@ -36,8 +36,16 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  function sanitizeTitle(title) {
+    return title
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[. ]+$/g, '');
+  }
+
   function buildFilename(title, entryNum) {
-    return 'GALLIONcarol#' + entryNum + '_' + title + '.jpg';
+    return 'GALLIONcarol#' + entryNum + '_' + sanitizeTitle(title) + '.jpg';
   }
 
   function calcResize(origWidth, origHeight, targetSize) {
@@ -120,7 +128,7 @@
     var blob = await canvasToBlob(canvas, quality);
 
     while (blob.size > maxBytes && quality > 0.3) {
-      quality -= 0.05;
+      quality = Math.max(0.3, Math.round((quality - 0.05) * 100) / 100);
       blob = await canvasToBlob(canvas, quality);
     }
 
@@ -170,10 +178,27 @@
       return false;
     }
 
+    function clearLoadedImage() {
+      state.originalFile = null;
+      state.originalImage = null;
+      document.getElementById('preview-img').removeAttribute('src');
+      document.getElementById('original-info').textContent = '';
+      document.getElementById('original-preview').style.display = 'none';
+      document.getElementById('upload-next-row').style.display = 'none';
+    }
+
     state.originalFile = file;
     var reader = new FileReader();
+    reader.onerror = function () {
+      clearLoadedImage();
+      alert('The image file could not be read. Please try a different JPEG, PNG, or TIFF file.');
+    };
     reader.onload = function (e) {
       var img = new Image();
+      img.onerror = function () {
+        clearLoadedImage();
+        alert('This image format could not be opened in your browser. Please try a JPEG or PNG file.');
+      };
       img.onload = function () {
         state.originalImage = img;
         document.getElementById('preview-img').src = e.target.result;
@@ -317,6 +342,7 @@
   exports.getState = getState;
   exports.resetState = resetState;
   exports.formatSize = formatSize;
+  exports.sanitizeTitle = sanitizeTitle;
   exports.buildFilename = buildFilename;
   exports.calcResize = calcResize;
   exports.targetForShowType = targetForShowType;

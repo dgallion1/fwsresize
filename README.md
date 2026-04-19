@@ -19,6 +19,8 @@ For detailed instructions, open `help.html` in your browser or click the "Help" 
 
 Your images never leave your computer. All processing happens locally in your browser.
 
+If a TIFF or other image cannot be decoded by your browser, the tool now tells you and suggests retrying with JPEG or PNG.
+
 ---
 
 ## Technical Documentation
@@ -48,7 +50,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 
 2. **Canvas render** — A `<canvas>` element is created at the target dimensions. `ctx.drawImage()` renders the source image scaled to fit. Canvas output is inherently sRGB.
 
-3. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds 5 MB, quality is reduced by 0.05 and retried, down to a floor of 0.30.
+3. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds 5 MB, quality is reduced by 0.05 and retried, clamped to a floor of 0.30.
 
 4. **DPI metadata stamping** — `patchDPIBytes()` directly manipulates the JPEG binary to set 72 DPI in the JFIF APP0 header:
    - Byte 13: `0x01` (units = dots per inch)
@@ -56,7 +58,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
    - Bytes 16–17: `0x00 0x48` (Y density = 72)
    - If no JFIF APP0 segment exists, one is injected after the SOI marker.
 
-5. **Filename construction** — `buildFilename(title, entryNum)` produces `GALLIONcarol#N_Title.jpg`.
+5. **Filename construction** — `buildFilename(title, entryNum)` produces `GALLIONcarol#N_Title.jpg`, sanitizing characters that are invalid in downloaded filenames.
 
 6. **Download** — A blob URL is created via `URL.createObjectURL()` and assigned to an `<a download>` element.
 
@@ -65,6 +67,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | Function | Type | Description |
 |----------|------|-------------|
 | `formatSize(bytes)` | Pure | Formats byte count as B/KB/MB string |
+| `sanitizeTitle(title)` | Pure | Removes filename-invalid characters and trims trailing dots/spaces |
 | `buildFilename(title, entryNum)` | Pure | Constructs FWS-format filename |
 | `calcResize(w, h, target)` | Pure | Computes target dimensions, scale factor, and whether downscaling occurred |
 | `targetForShowType(type)` | Pure | Returns 1800 (juried) or 600 (non-juried) |
@@ -122,7 +125,7 @@ The single uncovered branch is the UMD module-format detection (`typeof module !
 - **DPI patching** — existing JFIF patching, header injection, non-JPEG passthrough, data integrity
 - **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (including quality reduction loop and floor)
 - **State management** — defaults, reset, blob URL lifecycle
-- **DOM interactions** — show type/entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain
+- **DOM interactions** — show type/entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
 - **Upload listeners** — click, dragover, dragleave, drop (with and without files), file input change
 - **End-to-end `processImage`** — juried/non-juried shows, small image warnings, entry numbering, blob URL revocation
 
