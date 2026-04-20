@@ -41,6 +41,38 @@ function setupDOM() {
   return app;
 }
 
+// ---- Config tests ----
+
+describe('getConfig / setConfig', () => {
+  let app;
+  beforeEach(() => { app = setupDOM(); });
+
+  test('returns default config', () => {
+    expect(app.getConfig()).toEqual({ lastName: 'GALLION', firstName: 'carol' });
+  });
+
+  test('setConfig updates lastName', () => {
+    app.setConfig({ lastName: 'SMITH' });
+    expect(app.getConfig().lastName).toBe('SMITH');
+    expect(app.getConfig().firstName).toBe('carol');
+  });
+
+  test('setConfig updates firstName', () => {
+    app.setConfig({ firstName: 'jane' });
+    expect(app.getConfig().firstName).toBe('jane');
+  });
+
+  test('setConfig updates both', () => {
+    app.setConfig({ lastName: 'DOE', firstName: 'john' });
+    expect(app.getConfig()).toEqual({ lastName: 'DOE', firstName: 'john' });
+  });
+
+  test('buildFilename uses config', () => {
+    app.setConfig({ lastName: 'SMITH', firstName: 'jane' });
+    expect(app.buildFilename('River Walk', 1)).toBe('SMITHjane#1_River Walk.jpg');
+  });
+});
+
 // ---- Pure function tests ----
 
 describe('formatSize', () => {

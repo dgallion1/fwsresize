@@ -34,13 +34,16 @@ The application is a zero-dependency, client-side single-page app split across t
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (63 tests) |
+| `app.test.js` | Jest test suite (73 tests) |
+| `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
 - In the browser: exports to `window.FWSApp`
 - In Node.js: exports via `module.exports` (for testing)
 
 No build step, no bundler, no framework. Opens directly from the filesystem via `file://`.
+
+**Domain:** [fwsresize.app](https://fwsresize.app) — registered via GCP Cloud Domains, DNS managed by Cloud DNS.
 
 ### Image Processing Pipeline
 
@@ -58,7 +61,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
    - Bytes 16–17: `0x00 0x48` (Y density = 72)
    - If no JFIF APP0 segment exists, one is injected after the SOI marker.
 
-5. **Filename construction** — `buildFilename(title, entryNum)` produces `GALLIONcarol#N_Title.jpg`, sanitizing characters that are invalid in downloaded filenames.
+5. **Filename construction** — `buildFilename(title, entryNum)` uses the configurable `config.lastName` and `config.firstName` to produce `GALLIONcarol#N_Title.jpg` (default), sanitizing characters that are invalid in downloaded filenames.
 
 6. **Download** — A blob URL is created via `URL.createObjectURL()` and assigned to an `<a download>` element.
 
@@ -66,6 +69,8 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 
 | Function | Type | Description |
 |----------|------|-------------|
+| `getConfig()` | Pure | Returns current artist name config |
+| `setConfig(opts)` | Pure | Updates `lastName` and/or `firstName` for filename generation |
 | `formatSize(bytes)` | Pure | Formats byte count as B/KB/MB string |
 | `sanitizeTitle(title)` | Pure | Removes filename-invalid characters and trims trailing dots/spaces |
 | `buildFilename(title, entryNum)` | Pure | Constructs FWS-format filename |
@@ -84,6 +89,12 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `initUploadListeners()` | DOM | Binds drag-and-drop, click, and change listeners on upload area |
 
 ### State Management
+
+Artist name is held in a closure-scoped `config` object (defaults to Carol Gallion):
+
+```javascript
+{ lastName: 'GALLION', firstName: 'carol' }
+```
 
 Application state is held in a closure-scoped `state` object:
 
@@ -104,8 +115,10 @@ Application state is held in a closure-scoped `state` object:
 Tests use Jest with jsdom.
 
 ```bash
-npm install        # install dev dependencies
-npm test           # run tests with coverage report
+make build         # install dev dependencies
+make test          # run tests with coverage report
+make run           # open app in browser (WSL)
+make clean         # remove node_modules and coverage
 ```
 
 **Coverage:**
@@ -115,12 +128,13 @@ npm test           # run tests with coverage report
 | Statements | 100% |
 | Lines | 100% |
 | Functions | 100% |
-| Branches | 98.21% |
+| Branches | 98.33% |
 
 The single uncovered branch is the UMD module-format detection (`typeof module !== 'undefined'`), which always takes the Node path during testing.
 
 **Test structure:**
 
+- **Config** — `getConfig`, `setConfig`, config-driven filename generation
 - **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `targetForShowType`
 - **DPI patching** — existing JFIF patching, header injection, non-JPEG passthrough, data integrity
 - **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (including quality reduction loop and floor)
@@ -166,7 +180,8 @@ mom/
   index.html          # Main application (HTML + CSS)
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite
+  app.test.js         # Jest test suite (73 tests)
+  Makefile            # build, test, run, clean targets
   package.json        # npm config (test script)
   README.md           # This file
   .gitignore          # Ignores node_modules, coverage
@@ -176,7 +191,6 @@ mom/
 
 To adapt this tool for a different artist:
 
-1. In `app.js`, modify `buildFilename()` to use a different name format
+1. Call `FWSApp.setConfig({ lastName: 'SMITH', firstName: 'jane' })` before use, or update the defaults in `app.js`
 2. In `index.html`, update the page title and any hardcoded references
 3. In `help.html`, update the filename examples and references to "Carol Gallion"
-4. Update the tests in `app.test.js` to match the new filename format

@@ -4,6 +4,19 @@
 (function (exports) {
   'use strict';
 
+  // ---- Config ----
+  var config = {
+    lastName: 'GALLION',
+    firstName: 'carol',
+  };
+
+  function getConfig() { return config; }
+
+  function setConfig(opts) {
+    if (opts.lastName !== undefined) config.lastName = opts.lastName;
+    if (opts.firstName !== undefined) config.firstName = opts.firstName;
+  }
+
   // ---- State ----
   let state = {
     originalFile: null,
@@ -45,7 +58,7 @@
   }
 
   function buildFilename(title, entryNum) {
-    return 'GALLIONcarol#' + entryNum + '_' + sanitizeTitle(title) + '.jpg';
+    return config.lastName + config.firstName + '#' + entryNum + '_' + sanitizeTitle(title) + '.jpg';
   }
 
   function calcResize(origWidth, origHeight, targetSize) {
@@ -239,7 +252,7 @@
     var canvas = document.createElement('canvas');
     canvas.width = dims.width;
     canvas.height = dims.height;
-    var ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
     ctx.drawImage(state.originalImage, 0, 0, dims.width, dims.height);
 
     // Export JPEG with size control
@@ -300,7 +313,7 @@
     document.getElementById('original-preview').style.display = 'none';
     document.getElementById('upload-next-row').style.display = 'none';
     document.getElementById('painting-title').value = '';
-    document.getElementById('filename-text').textContent = 'GALLIONcarol#1_.jpg';
+    document.getElementById('filename-text').textContent = config.lastName + config.firstName + '#1_.jpg';
     document.getElementById('entry-1').classList.add('selected');
     document.getElementById('entry-2').classList.remove('selected');
     selectShowType('juried');
@@ -339,6 +352,8 @@
   }
 
   // ---- Exports ----
+  exports.getConfig = getConfig;
+  exports.setConfig = setConfig;
   exports.getState = getState;
   exports.resetState = resetState;
   exports.formatSize = formatSize;
