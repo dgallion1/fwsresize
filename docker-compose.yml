@@ -1,6 +1,9 @@
 services:
   fwsresize:
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
     container_name: fwsresize
     ports:
       - "${PORT:-3002}:80"
