@@ -180,15 +180,30 @@ Tested on: Chrome, Edge, Firefox, Safari (desktop and mobile).
 
 ```
 mom/
-  index.html          # Main application (HTML + CSS)
+  index.html          # Main application (HTML + CSS); references app.js?v=DEPLOY_VERSION
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
   app.test.js         # Jest test suite (80 tests)
-  Makefile            # build, test, run, clean targets
+  Makefile            # build, test, run, clean, docker-deploy targets
   package.json        # npm config (test script)
+  Dockerfile          # nginx:alpine image; seds DEPLOY_VERSION into index.html at build
+  docker-compose.yml  # Runs the container on $PORT (default 3002)
+  default.conf        # nginx cache headers: no-cache on HTML, immutable on JS
   README.md           # This file
   .gitignore          # Ignores node_modules, coverage
 ```
+
+### Deployment
+
+Deployed to [fwsresize.app](https://fwsresize.app) via Docker + nginx, fronted by Cloudflare.
+
+```bash
+make docker-deploy     # rsync to DEPLOY_HOST (default: spark) and rebuild the container
+```
+
+The Makefile computes `VERSION := $(git-sha)-$(timestamp)` locally and passes it as a Docker build-arg. The Dockerfile `sed`s it into `index.html` so every deploy ships a fresh `<script src="app.js?v={VERSION}">`. Combined with the `default.conf` cache policy (no-cache on HTML, `immutable` long cache on JS), a deploy is live immediately in all browsers without manual cache-clearing: the browser revalidates the HTML on next load, sees the new versioned JS URL, and fetches the new JS.
+
+Overrides: `DEPLOY_HOST`, `DEPLOY_PORT`, and `SSH` are all Makefile variables. Default is `spark` over `tailscale ssh` on port `3002`.
 
 ### Customization
 
