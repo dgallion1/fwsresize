@@ -136,23 +136,23 @@ describe('calcResize', () => {
   let app;
   beforeEach(() => { app = setupDOM(); });
 
-  test('downscales landscape image for juried show', () => {
-    const result = app.calcResize(4000, 3000, 1800);
-    expect(result.width).toBe(1800);
-    expect(result.height).toBe(1350);
+  test('downscales landscape image', () => {
+    const result = app.calcResize(4000, 3000, 1920);
+    expect(result.width).toBe(1920);
+    expect(result.height).toBe(1440);
     expect(result.wasDownscaled).toBe(true);
-    expect(result.scale).toBeCloseTo(0.45);
+    expect(result.scale).toBeCloseTo(0.48);
     expect(result.longestSide).toBe(4000);
   });
 
-  test('downscales portrait image for juried show', () => {
-    const result = app.calcResize(3000, 4000, 1800);
-    expect(result.width).toBe(1350);
-    expect(result.height).toBe(1800);
+  test('downscales portrait image', () => {
+    const result = app.calcResize(3000, 4000, 1920);
+    expect(result.width).toBe(1440);
+    expect(result.height).toBe(1920);
     expect(result.wasDownscaled).toBe(true);
   });
 
-  test('downscales for non-juried show', () => {
+  test('downscales to a smaller custom target', () => {
     const result = app.calcResize(4000, 3000, 600);
     expect(result.width).toBe(600);
     expect(result.height).toBe(450);
@@ -160,7 +160,7 @@ describe('calcResize', () => {
   });
 
   test('does not upscale small image', () => {
-    const result = app.calcResize(500, 400, 1800);
+    const result = app.calcResize(500, 400, 1920);
     expect(result.width).toBe(500);
     expect(result.height).toBe(400);
     expect(result.scale).toBe(1);
@@ -169,42 +169,89 @@ describe('calcResize', () => {
   });
 
   test('does not upscale image at exact target size', () => {
-    const result = app.calcResize(1800, 1200, 1800);
-    expect(result.width).toBe(1800);
+    const result = app.calcResize(1920, 1200, 1920);
+    expect(result.width).toBe(1920);
     expect(result.height).toBe(1200);
     expect(result.scale).toBe(1);
     expect(result.wasDownscaled).toBe(false);
   });
 
   test('handles square image', () => {
-    const result = app.calcResize(3000, 3000, 1800);
-    expect(result.width).toBe(1800);
-    expect(result.height).toBe(1800);
+    const result = app.calcResize(3000, 3000, 1920);
+    expect(result.width).toBe(1920);
+    expect(result.height).toBe(1920);
     expect(result.wasDownscaled).toBe(true);
   });
 
   test('rounds dimensions correctly', () => {
-    // 2001 * (1800/2001) = 1800, 1501 * (1800/2001) ≈ 1350.67 → 1351
-    const result = app.calcResize(2001, 1501, 1800);
-    expect(result.width).toBe(1800);
-    expect(result.height).toBe(Math.round(1501 * (1800 / 2001)));
+    const result = app.calcResize(2001, 1501, 1920);
+    expect(result.width).toBe(1920);
+    expect(result.height).toBe(Math.round(1501 * (1920 / 2001)));
   });
 });
 
-describe('targetForShowType', () => {
+describe('parseAdvanced', () => {
   let app;
   beforeEach(() => { app = setupDOM(); });
 
-  test('returns 1800 for juried', () => {
-    expect(app.targetForShowType('juried')).toBe(1800);
+  test('returns defaults when all inputs are blank', () => {
+    const result = app.parseAdvanced('', '', '');
+    expect(result.targetSize).toBe(1920);
+    expect(result.maxBytes).toBe(5 * 1024 * 1024);
+    expect(result.dpi).toBe(72);
   });
 
-  test('returns 600 for nonjuried', () => {
-    expect(app.targetForShowType('nonjuried')).toBe(600);
+  test('returns defaults for non-numeric input', () => {
+    const result = app.parseAdvanced('abc', 'xyz', 'foo');
+    expect(result.targetSize).toBe(1920);
+    expect(result.maxBytes).toBe(5 * 1024 * 1024);
+    expect(result.dpi).toBe(72);
   });
 
-  test('returns 600 for unknown type (defaults to non-juried)', () => {
-    expect(app.targetForShowType('other')).toBe(600);
+  test('returns defaults for zero or negative input', () => {
+    const result = app.parseAdvanced('0', '-2', '-1');
+    expect(result.targetSize).toBe(1920);
+    expect(result.maxBytes).toBe(5 * 1024 * 1024);
+    expect(result.dpi).toBe(72);
+  });
+
+  test('parses valid target size', () => {
+    const result = app.parseAdvanced('1200', '', '');
+    expect(result.targetSize).toBe(1200);
+    expect(result.maxBytes).toBe(5 * 1024 * 1024);
+    expect(result.dpi).toBe(72);
+  });
+
+  test('parses valid max MB', () => {
+    const result = app.parseAdvanced('', '2', '');
+    expect(result.targetSize).toBe(1920);
+    expect(result.maxBytes).toBe(Math.round(2 * 1024 * 1024));
+    expect(result.dpi).toBe(72);
+  });
+
+  test('parses valid DPI', () => {
+    const result = app.parseAdvanced('', '', '300');
+    expect(result.targetSize).toBe(1920);
+    expect(result.maxBytes).toBe(5 * 1024 * 1024);
+    expect(result.dpi).toBe(300);
+  });
+
+  test('parses all three custom values together', () => {
+    const result = app.parseAdvanced('1600', '1.5', '150');
+    expect(result.targetSize).toBe(1600);
+    expect(result.maxBytes).toBe(Math.round(1.5 * 1024 * 1024));
+    expect(result.dpi).toBe(150);
+  });
+
+  test('rejects DPI above the JFIF 16-bit range', () => {
+    const result = app.parseAdvanced('', '', '70000');
+    expect(result.dpi).toBe(72);
+  });
+
+  test('exports default constants', () => {
+    expect(app.DEFAULT_TARGET_SIZE).toBe(1920);
+    expect(app.DEFAULT_MAX_BYTES).toBe(5 * 1024 * 1024);
+    expect(app.DEFAULT_DPI).toBe(72);
   });
 });
 
@@ -294,6 +341,40 @@ describe('patchDPIBytes', () => {
     expect(result.patched).toBe(false);
   });
 
+  test('patches existing JFIF with a custom DPI', () => {
+    const bytes = new Uint8Array(20);
+    bytes[0] = 0xFF; bytes[1] = 0xD8;
+    bytes[2] = 0xFF; bytes[3] = 0xE0;
+    bytes[4] = 0x00; bytes[5] = 0x10;
+    bytes[6] = 0x4A; bytes[7] = 0x46; bytes[8] = 0x49; bytes[9] = 0x46; bytes[10] = 0x00;
+    bytes[11] = 0x01; bytes[12] = 0x02;
+
+    const result = app.patchDPIBytes(bytes, 300);
+    expect(result.patched).toBe(true);
+    expect(result.bytes[13]).toBe(0x01);  // units = DPI
+    // 300 decimal = 0x012C, big-endian → 0x01, 0x2C
+    expect(result.bytes[14]).toBe(0x01);
+    expect(result.bytes[15]).toBe(0x2C);
+    expect(result.bytes[16]).toBe(0x01);
+    expect(result.bytes[17]).toBe(0x2C);
+  });
+
+  test('injects a new JFIF header with a custom DPI', () => {
+    const bytes = new Uint8Array(10);
+    bytes[0] = 0xFF; bytes[1] = 0xD8;
+    bytes[2] = 0xFF; bytes[3] = 0xE1; // APP1 (not APP0)
+    bytes[4] = 0x00; bytes[5] = 0x04;
+
+    const result = app.patchDPIBytes(bytes, 300);
+    expect(result.patched).toBe(true);
+    expect(result.injected).toBe(true);
+    expect(result.bytes[13]).toBe(0x01);
+    expect(result.bytes[14]).toBe(0x01);
+    expect(result.bytes[15]).toBe(0x2C);
+    expect(result.bytes[16]).toBe(0x01);
+    expect(result.bytes[17]).toBe(0x2C);
+  });
+
   test('preserves original data length when patching existing JFIF', () => {
     const bytes = new Uint8Array(100);
     bytes[0] = 0xFF; bytes[1] = 0xD8;
@@ -357,18 +438,16 @@ describe('state management', () => {
     const state = app.getState();
     expect(state.originalFile).toBeNull();
     expect(state.originalImage).toBeNull();
-    expect(state.showType).toBe('juried');
     expect(state.entryNumber).toBe(1);
     expect(state.processedBlobURL).toBeNull();
+    expect(state.showType).toBeUndefined();
   });
 
   test('resetState restores defaults', () => {
     const state = app.getState();
-    state.showType = 'nonjuried';
     state.entryNumber = 2;
     app.resetState();
     const fresh = app.getState();
-    expect(fresh.showType).toBe('juried');
     expect(fresh.entryNumber).toBe(1);
   });
 
@@ -385,32 +464,6 @@ describe('state management', () => {
 });
 
 // ---- DOM interaction tests ----
-
-describe('selectShowType', () => {
-  let app;
-  beforeEach(() => { app = setupDOM(); });
-
-  test('selects juried show', () => {
-    app.selectShowType('juried');
-    expect(app.getState().showType).toBe('juried');
-    expect(document.getElementById('card-juried').classList.contains('selected')).toBe(true);
-    expect(document.getElementById('card-nonjuried').classList.contains('selected')).toBe(false);
-  });
-
-  test('selects non-juried show', () => {
-    app.selectShowType('nonjuried');
-    expect(app.getState().showType).toBe('nonjuried');
-    expect(document.getElementById('card-juried').classList.contains('selected')).toBe(false);
-    expect(document.getElementById('card-nonjuried').classList.contains('selected')).toBe(true);
-  });
-
-  test('toggling back to juried after selecting nonjuried', () => {
-    app.selectShowType('nonjuried');
-    app.selectShowType('juried');
-    expect(app.getState().showType).toBe('juried');
-    expect(document.getElementById('card-juried').classList.contains('selected')).toBe(true);
-  });
-});
 
 describe('selectEntry', () => {
   let app;
@@ -474,18 +527,16 @@ describe('goToStep', () => {
     expect(document.getElementById('step-1').classList.contains('visible')).toBe(true);
     expect(document.getElementById('step-2').classList.contains('visible')).toBe(false);
     expect(document.getElementById('step-3').classList.contains('visible')).toBe(false);
-    expect(document.getElementById('step-4').classList.contains('visible')).toBe(false);
   });
 
   test('shows step 3 with dots updated', () => {
-    // Need to set originalImage so we can pass through step 2
+    // Need an originalImage so we can pass through the step-2 prerequisite
     app.getState().originalImage = { naturalWidth: 100, naturalHeight: 100 };
     app.goToStep(3);
     expect(document.getElementById('step-3').classList.contains('visible')).toBe(true);
     expect(document.getElementById('dot-1').classList.contains('done')).toBe(true);
     expect(document.getElementById('dot-2').classList.contains('done')).toBe(true);
     expect(document.getElementById('dot-3').classList.contains('active')).toBe(true);
-    expect(document.getElementById('dot-4').classList.contains('active')).toBe(false);
   });
 
   test('prevents going to step 2 without image', () => {
@@ -638,15 +689,16 @@ describe('startOver', () => {
 
   test('resets all state and UI', () => {
     // Set some state
-    app.getState().showType = 'nonjuried';
     app.getState().entryNumber = 2;
     document.getElementById('painting-title').value = 'Test';
     document.getElementById('original-preview').style.display = 'block';
     document.getElementById('upload-next-row').style.display = 'flex';
+    document.getElementById('adv-target-size').value = '1200';
+    document.getElementById('adv-max-mb').value = '2';
+    document.getElementById('adv-dpi').value = '300';
 
     app.startOver();
 
-    expect(app.getState().showType).toBe('juried');
     expect(app.getState().entryNumber).toBe(1);
     expect(document.getElementById('painting-title').value).toBe('');
     expect(document.getElementById('original-preview').style.display).toBe('none');
@@ -654,7 +706,9 @@ describe('startOver', () => {
     expect(document.getElementById('filename-text').textContent).toBe('GALLIONcarol#1_.jpg');
     expect(document.getElementById('entry-1').classList.contains('selected')).toBe(true);
     expect(document.getElementById('entry-2').classList.contains('selected')).toBe(false);
-    expect(document.getElementById('card-juried').classList.contains('selected')).toBe(true);
+    expect(document.getElementById('adv-target-size').value).toBe('');
+    expect(document.getElementById('adv-max-mb').value).toBe('');
+    expect(document.getElementById('adv-dpi').value).toBe('');
     expect(document.getElementById('step-1').classList.contains('visible')).toBe(true);
   });
 
@@ -837,7 +891,7 @@ describe('processImage', () => {
     focusMock.mockRestore();
   });
 
-  test('processes image end-to-end for juried show', async () => {
+  test('processes image end-to-end with default settings', async () => {
     // Set up state
     const state = app.getState();
     state.originalImage = {
@@ -845,7 +899,6 @@ describe('processImage', () => {
       naturalHeight: 3000,
     };
     state.originalFile = new File(['x'.repeat(2000000)], 'test.jpeg', { type: 'image/jpeg' });
-    state.showType = 'juried';
     state.entryNumber = 1;
 
     document.getElementById('painting-title').value = 'Sunset Bay';
@@ -885,13 +938,14 @@ describe('processImage', () => {
 
     expect(result).not.toBeNull();
     expect(result.filename).toBe('GALLIONcarol#1_Sunset Bay.jpg');
-    expect(result.dims.width).toBe(1800);
-    expect(result.dims.height).toBe(1350);
-    expect(mockCtx.drawImage).toHaveBeenCalledWith(state.originalImage, 0, 0, 1800, 1350);
+    expect(result.dims.width).toBe(1920);
+    expect(result.dims.height).toBe(1440);
+    expect(mockCtx.drawImage).toHaveBeenCalledWith(state.originalImage, 0, 0, 1920, 1440);
 
     // Check DOM updates
-    expect(document.getElementById('meta-proc-dims').textContent).toBe('1800 x 1350 px');
+    expect(document.getElementById('meta-proc-dims').textContent).toBe('1920 x 1440 px');
     expect(document.getElementById('meta-orig-dims').textContent).toBe('4000 x 3000 px');
+    expect(document.getElementById('meta-proc-format').textContent).toBe('JPEG (Baseline), sRGB, 72 DPI');
     expect(document.getElementById('success-msg').textContent)
       .toContain('Sunset Bay');
     expect(document.getElementById('download-btn').download)
@@ -910,7 +964,6 @@ describe('processImage', () => {
       naturalHeight: 300,
     };
     state.originalFile = new File(['x'], 'small.jpeg', { type: 'image/jpeg' });
-    state.showType = 'juried';
     state.entryNumber = 1;
 
     document.getElementById('painting-title').value = 'Tiny';
@@ -947,20 +1000,21 @@ describe('processImage', () => {
     expect(result.dims.height).toBe(300);
     expect(document.getElementById('size-warning').style.display).toBe('block');
     expect(document.getElementById('size-warning').textContent).toContain('400px');
-    expect(document.getElementById('size-warning').textContent).toContain('1800px');
+    expect(document.getElementById('size-warning').textContent).toContain('1920px');
 
     document.createElement.mockRestore();
   });
 
-  test('processes non-juried show with entry 2', async () => {
+  test('honors Advanced target size override', async () => {
     const state = app.getState();
     state.originalImage = { naturalWidth: 2000, naturalHeight: 1000 };
     state.originalFile = new File(['x'], 'test.png', { type: 'image/png' });
-    state.showType = 'nonjuried';
     state.entryNumber = 2;
 
     document.getElementById('painting-title').value = 'Waves';
     document.getElementById('preview-img').src = 'data:image/png;base64,test';
+    // Advanced override: 600px longest side
+    document.getElementById('adv-target-size').value = '600';
 
     const fakeJpeg = new Uint8Array(20);
     fakeJpeg[0] = 0xFF; fakeJpeg[1] = 0xD8;
@@ -996,11 +1050,105 @@ describe('processImage', () => {
     document.createElement.mockRestore();
   });
 
+  test('honors Advanced DPI override and stamps it into the output blob', async () => {
+    const state = app.getState();
+    state.originalImage = { naturalWidth: 2000, naturalHeight: 1000 };
+    state.originalFile = new File(['x'], 'test.jpeg', { type: 'image/jpeg' });
+    state.entryNumber = 1;
+
+    document.getElementById('painting-title').value = 'Print Copy';
+    document.getElementById('preview-img').src = 'data:image/jpeg;base64,test';
+    document.getElementById('adv-dpi').value = '300';
+
+    const fakeJpeg = new Uint8Array(20);
+    fakeJpeg[0] = 0xFF; fakeJpeg[1] = 0xD8;
+    fakeJpeg[2] = 0xFF; fakeJpeg[3] = 0xE0;
+    fakeJpeg[4] = 0x00; fakeJpeg[5] = 0x10;
+    fakeJpeg[6] = 0x4A; fakeJpeg[7] = 0x46; fakeJpeg[8] = 0x49; fakeJpeg[9] = 0x46; fakeJpeg[10] = 0x00;
+    fakeJpeg[11] = 0x01; fakeJpeg[12] = 0x02;
+    const fakeBlob = new Blob([fakeJpeg], { type: 'image/jpeg' });
+
+    const mockCtx = { drawImage: jest.fn() };
+    const origCreateElement = document.createElement.bind(document);
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0, height: 0,
+          getContext: () => mockCtx,
+          toBlob: (cb) => cb(fakeBlob),
+        };
+      }
+      return origCreateElement(tag);
+    });
+    URL.createObjectURL.mockReturnValue('blob:fake');
+
+    const promise = app.processImage();
+    jest.advanceTimersByTime(50);
+    const result = await promise;
+
+    // Format metadata reflects the custom DPI
+    expect(document.getElementById('meta-proc-format').textContent).toBe('JPEG (Baseline), sRGB, 300 DPI');
+
+    // Verify the output blob actually has 300 DPI stamped (0x012C big-endian)
+    const outBytes = new Uint8Array(await result.blob.arrayBuffer());
+    expect(outBytes[13]).toBe(0x01);
+    expect(outBytes[14]).toBe(0x01);
+    expect(outBytes[15]).toBe(0x2C);
+    expect(outBytes[16]).toBe(0x01);
+    expect(outBytes[17]).toBe(0x2C);
+
+    document.createElement.mockRestore();
+  });
+
+  test('honors Advanced max file size override', async () => {
+    const state = app.getState();
+    state.originalImage = { naturalWidth: 2000, naturalHeight: 1000 };
+    state.originalFile = new File(['x'], 'test.jpeg', { type: 'image/jpeg' });
+    state.entryNumber = 1;
+
+    document.getElementById('painting-title').value = 'Small Cap';
+    document.getElementById('preview-img').src = 'data:image/jpeg;base64,test';
+    // 1 MB cap → parseAdvanced returns 1*1024*1024 = 1048576
+    document.getElementById('adv-max-mb').value = '1';
+
+    // 1.5 MB blob: over the 1 MB cap so exportWithSizeLimit will loop
+    const oversizedJpeg = new Uint8Array(1.5 * 1024 * 1024);
+    oversizedJpeg[0] = 0xFF; oversizedJpeg[1] = 0xD8;
+    oversizedJpeg[2] = 0xFF; oversizedJpeg[3] = 0xE0;
+    oversizedJpeg[4] = 0x00; oversizedJpeg[5] = 0x10;
+    oversizedJpeg[6] = 0x4A; oversizedJpeg[7] = 0x46; oversizedJpeg[8] = 0x49; oversizedJpeg[9] = 0x46; oversizedJpeg[10] = 0x00;
+    oversizedJpeg[11] = 0x01; oversizedJpeg[12] = 0x02;
+    const oversizedBlob = new Blob([oversizedJpeg], { type: 'image/jpeg' });
+
+    let toBlobCalls = 0;
+    const mockCtx = { drawImage: jest.fn() };
+    const origCreateElement = document.createElement.bind(document);
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0, height: 0,
+          getContext: () => mockCtx,
+          toBlob: (cb) => { toBlobCalls++; cb(oversizedBlob); },
+        };
+      }
+      return origCreateElement(tag);
+    });
+    URL.createObjectURL.mockReturnValue('blob:fake');
+
+    const promise = app.processImage();
+    jest.advanceTimersByTime(50);
+    await promise;
+
+    // Size cap of 1 MB forces the quality loop to retry multiple times
+    expect(toBlobCalls).toBeGreaterThan(1);
+
+    document.createElement.mockRestore();
+  });
+
   test('uses sanitized filename for download output', async () => {
     const state = app.getState();
     state.originalImage = { naturalWidth: 2000, naturalHeight: 1000 };
     state.originalFile = new File(['x'], 'test.jpeg', { type: 'image/jpeg' });
-    state.showType = 'juried';
     state.entryNumber = 2;
 
     document.getElementById('painting-title').value = 'Sky / Water: Study?*';

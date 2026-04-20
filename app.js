@@ -17,11 +17,15 @@
     if (opts.firstName !== undefined) config.firstName = opts.firstName;
   }
 
+  // ---- Defaults ----
+  var DEFAULT_TARGET_SIZE = 1920;
+  var DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
+  var DEFAULT_DPI = 72;
+
   // ---- State ----
   let state = {
     originalFile: null,
     originalImage: null,
-    showType: 'juried',
     entryNumber: 1,
     processedBlobURL: null,
   };
@@ -35,7 +39,6 @@
     state = {
       originalFile: null,
       originalImage: null,
-      showType: 'juried',
       entryNumber: 1,
       processedBlobURL: null,
     };
@@ -73,13 +76,36 @@
     };
   }
 
-  function targetForShowType(showType) {
-    return showType === 'juried' ? 1800 : 600;
+  function parseAdvanced(rawTargetSize, rawMaxMb, rawDpi) {
+    var targetSize = DEFAULT_TARGET_SIZE;
+    var parsedTarget = parseInt(rawTargetSize, 10);
+    if (isFinite(parsedTarget) && parsedTarget > 0) {
+      targetSize = parsedTarget;
+    }
+
+    var maxBytes = DEFAULT_MAX_BYTES;
+    var parsedMb = parseFloat(rawMaxMb);
+    if (isFinite(parsedMb) && parsedMb > 0) {
+      maxBytes = Math.round(parsedMb * 1024 * 1024);
+    }
+
+    // JFIF X/Y density is 2 bytes big-endian, so max is 65535.
+    var dpi = DEFAULT_DPI;
+    var parsedDpi = parseInt(rawDpi, 10);
+    if (isFinite(parsedDpi) && parsedDpi > 0 && parsedDpi <= 65535) {
+      dpi = parsedDpi;
+    }
+
+    return { targetSize: targetSize, maxBytes: maxBytes, dpi: dpi };
   }
 
   // ---- DPI patching ----
 
-  function patchDPIBytes(bytes) {
+  function patchDPIBytes(bytes, dpi) {
+    if (dpi === undefined) dpi = DEFAULT_DPI;
+    var dpiHi = (dpi >> 8) & 0xFF;
+    var dpiLo = dpi & 0xFF;
+
     // Verify SOI (FF D8)
     if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) {
       return { patched: false, bytes: bytes };
@@ -92,10 +118,10 @@
           bytes[8] === 0x49 && bytes[9] === 0x46 && bytes[10] === 0x00) {
         // Patch density fields
         bytes[13] = 0x01;       // units = DPI
-        bytes[14] = 0x00;       // X density high byte
-        bytes[15] = 0x48;       // X density low byte (72)
-        bytes[16] = 0x00;       // Y density high byte
-        bytes[17] = 0x48;       // Y density low byte (72)
+        bytes[14] = dpiHi;      // X density high byte
+        bytes[15] = dpiLo;      // X density low byte
+        bytes[16] = dpiHi;      // Y density high byte
+        bytes[17] = dpiLo;      // Y density low byte
         return { patched: true, bytes: bytes, injected: false };
       }
     }
@@ -107,8 +133,8 @@
       0x4A, 0x46, 0x49, 0x46, 0x00,  // "JFIF\0"
       0x01, 0x02,             // version 1.2
       0x01,                   // units = DPI
-      0x00, 0x48,             // X density = 72
-      0x00, 0x48,             // Y density = 72
+      dpiHi, dpiLo,           // X density
+      dpiHi, dpiLo,           // Y density
       0x00, 0x00              // no thumbnail
     ]);
 
@@ -120,10 +146,10 @@
     return { patched: true, bytes: result, injected: true };
   }
 
-  async function patchDPI(blob) {
+  async function patchDPI(blob, dpi) {
     var buffer = await blob.arrayBuffer();
     var bytes = new Uint8Array(buffer);
-    var result = patchDPIBytes(bytes);
+    var result = patchDPIBytes(bytes, dpi);
     if (!result.patched) return blob;
     return new Blob([result.bytes], { type: 'image/jpeg' });
   }
@@ -150,12 +176,6 @@
 
   // ---- DOM interaction ----
 
-  function selectShowType(type) {
-    state.showType = type;
-    document.getElementById('card-juried').classList.toggle('selected', type === 'juried');
-    document.getElementById('card-nonjuried').classList.toggle('selected', type === 'nonjuried');
-  }
-
   function selectEntry(num) {
     state.entryNumber = num;
     document.getElementById('entry-1').classList.toggle('selected', num === 1);
@@ -175,7 +195,7 @@
       return false;
     }
 
-    for (var i = 1; i <= 4; i++) {
+    for (var i = 1; i <= 3; i++) {
       document.getElementById('step-' + i).classList.toggle('visible', i === step);
       var dot = document.getElementById('dot-' + i);
       dot.classList.remove('active', 'done');
@@ -234,14 +254,22 @@
       return null;
     }
 
-    goToStep(4);
+    goToStep(3);
     document.getElementById('processing-spinner').classList.add('visible');
     document.getElementById('results').style.display = 'none';
 
     // Let the UI update before heavy processing
     await new Promise(function (r) { setTimeout(r, 50); });
 
-    var targetSize = targetForShowType(state.showType);
+    var settings = parseAdvanced(
+      document.getElementById('adv-target-size').value,
+      document.getElementById('adv-max-mb').value,
+      document.getElementById('adv-dpi').value
+    );
+    var targetSize = settings.targetSize;
+    var maxBytes = settings.maxBytes;
+    var dpi = settings.dpi;
+
     var dims = calcResize(
       state.originalImage.naturalWidth,
       state.originalImage.naturalHeight,
@@ -256,11 +284,10 @@
     ctx.drawImage(state.originalImage, 0, 0, dims.width, dims.height);
 
     // Export JPEG with size control
-    var maxBytes = 5 * 1024 * 1024;
     var exported = await exportWithSizeLimit(canvas, maxBytes);
 
     // Patch DPI metadata
-    var patched = await patchDPI(exported.blob);
+    var patched = await patchDPI(exported.blob, dpi);
 
     // Build filename
     var filename = buildFilename(title, state.entryNumber);
@@ -280,6 +307,8 @@
     document.getElementById('meta-proc-size').textContent = formatSize(patched.size);
     document.getElementById('meta-orig-format').textContent =
       state.originalFile.type.replace('image/', '').toUpperCase();
+    document.getElementById('meta-proc-format').textContent =
+      'JPEG (Baseline), sRGB, ' + dpi + ' DPI';
 
     document.getElementById('success-msg').textContent =
       'Your image "' + title + '" is ready to download as: ' + filename;
@@ -316,7 +345,10 @@
     document.getElementById('filename-text').textContent = config.lastName + config.firstName + '#1_.jpg';
     document.getElementById('entry-1').classList.add('selected');
     document.getElementById('entry-2').classList.remove('selected');
-    selectShowType('juried');
+
+    document.getElementById('adv-target-size').value = '';
+    document.getElementById('adv-max-mb').value = '';
+    document.getElementById('adv-dpi').value = '';
 
     goToStep(1);
   }
@@ -360,12 +392,14 @@
   exports.sanitizeTitle = sanitizeTitle;
   exports.buildFilename = buildFilename;
   exports.calcResize = calcResize;
-  exports.targetForShowType = targetForShowType;
+  exports.parseAdvanced = parseAdvanced;
+  exports.DEFAULT_TARGET_SIZE = DEFAULT_TARGET_SIZE;
+  exports.DEFAULT_MAX_BYTES = DEFAULT_MAX_BYTES;
+  exports.DEFAULT_DPI = DEFAULT_DPI;
   exports.patchDPIBytes = patchDPIBytes;
   exports.patchDPI = patchDPI;
   exports.canvasToBlob = canvasToBlob;
   exports.exportWithSizeLimit = exportWithSizeLimit;
-  exports.selectShowType = selectShowType;
   exports.selectEntry = selectEntry;
   exports.updateFilenamePreview = updateFilenamePreview;
   exports.goToStep = goToStep;

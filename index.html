@@ -146,41 +146,50 @@ input[type="file"] { display: none; }
   color: #718096;
 }
 
-/* Show type cards */
-.show-type-cards {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
+/* Advanced settings panel */
+.advanced-panel {
+  margin-top: 8px;
+  padding: 14px 18px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 
-.show-card {
-  flex: 1;
-  border: 3px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px 20px;
+.advanced-panel summary {
   cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  background: #fff;
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 15px;
 }
 
-.show-card:hover { border-color: #90cdf4; }
+.advanced-panel[open] summary { margin-bottom: 12px; }
 
-.show-card.selected {
-  border-color: #3182ce;
-  background: #ebf8ff;
+.advanced-panel label {
+  display: block;
+  font-size: 15px;
+  color: #4a5568;
+  margin-top: 10px;
+  font-weight: 600;
 }
 
-.show-card h3 {
-  font-size: 20px;
-  color: #2d3748;
-  margin-bottom: 8px;
+.advanced-panel input[type="number"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  font-size: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-weight: normal;
 }
 
-.show-card .specs {
+.advanced-panel input[type="number"]:focus { border-color: #3182ce; }
+
+.advanced-hint {
+  margin-top: 10px;
   font-size: 14px;
   color: #718096;
-  line-height: 1.6;
 }
 
 /* Form fields */
@@ -387,7 +396,6 @@ input[type="file"] { display: none; }
 
 /* Responsive */
 @media (max-width: 600px) {
-  .show-type-cards { flex-direction: column; }
   .comparison { flex-direction: column; }
   .btn-row { flex-direction: column; }
   .container { padding: 16px 12px 40px; }
@@ -407,7 +415,6 @@ input[type="file"] { display: none; }
     <div class="step-dot active" id="dot-1">1</div>
     <div class="step-dot" id="dot-2">2</div>
     <div class="step-dot" id="dot-3">3</div>
-    <div class="step-dot" id="dot-4">4</div>
   </div>
 
   <!-- STEP 1: Upload -->
@@ -432,38 +439,8 @@ input[type="file"] { display: none; }
     </div>
   </div>
 
-  <!-- STEP 2: Show Type -->
+  <!-- STEP 2: Painting Details -->
   <div class="step-section" id="step-2">
-    <h2>Choose Show Type</h2>
-    <p class="instructions">Pick the type of show you are entering.</p>
-
-    <div class="show-type-cards">
-      <div class="show-card selected" id="card-juried" onclick="FWSApp.selectShowType('juried')">
-        <h3>Juried Show</h3>
-        <div class="specs">
-          Longest side: 1800 pixels<br>
-          72 DPI &middot; JPEG format<br>
-          Under 5 MB
-        </div>
-      </div>
-      <div class="show-card" id="card-nonjuried" onclick="FWSApp.selectShowType('nonjuried')">
-        <h3>Non-Juried Show</h3>
-        <div class="specs">
-          Longest side: 600 pixels<br>
-          72 DPI &middot; JPEG format<br>
-          Under 5 MB
-        </div>
-      </div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn btn-outline" onclick="FWSApp.goToStep(1)">Back</button>
-      <button class="btn btn-primary" onclick="FWSApp.goToStep(3)">Next</button>
-    </div>
-  </div>
-
-  <!-- STEP 3: Painting Details -->
-  <div class="step-section" id="step-3">
     <h2>Painting Details</h2>
     <p class="instructions">Enter the title of your painting and which entry this is.</p>
 
@@ -484,14 +461,28 @@ input[type="file"] { display: none; }
       <strong>Filename will be:</strong> <span id="filename-text">GALLIONcarol#1_.jpg</span>
     </div>
 
+    <details class="advanced-panel">
+      <summary>Advanced settings (optional)</summary>
+      <label>Longest side (pixels)
+        <input type="number" id="adv-target-size" placeholder="1920" min="100" step="1">
+      </label>
+      <label>Max file size (MB)
+        <input type="number" id="adv-max-mb" placeholder="5" min="0.1" step="0.1">
+      </label>
+      <label>DPI
+        <input type="number" id="adv-dpi" placeholder="72" min="1" max="65535" step="1">
+      </label>
+      <p class="advanced-hint">Leave any field blank to use the FWS default (1920&nbsp;px, 5&nbsp;MB, 72&nbsp;DPI). Only change these if a specific show's prospectus lists different requirements.</p>
+    </details>
+
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="FWSApp.goToStep(2)">Back</button>
+      <button class="btn btn-outline" onclick="FWSApp.goToStep(1)">Back</button>
       <button class="btn btn-primary" id="process-btn" onclick="FWSApp.processImage()">Prepare My Image</button>
     </div>
   </div>
 
-  <!-- STEP 4: Results -->
-  <div class="step-section" id="step-4">
+  <!-- STEP 3: Results -->
+  <div class="step-section" id="step-3">
     <div class="processing-overlay visible" id="processing-spinner">
       <div class="spinner"></div>
       <p>Preparing your image&hellip;</p>
@@ -532,7 +523,7 @@ input[type="file"] { display: none; }
         <tr>
           <td><strong>Format</strong></td>
           <td id="meta-orig-format"></td>
-          <td>JPEG (Baseline), sRGB, 72 DPI</td>
+          <td id="meta-proc-format"></td>
         </tr>
       </table>
 

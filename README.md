@@ -8,10 +8,11 @@ A client-side web application that prepares watercolor painting images for Flori
 
 1. Open `index.html` by double-clicking it — it opens in your web browser
 2. Drop your painting image onto the upload area (or click to choose a file)
-3. Pick your show type: **Juried** or **Non-Juried**
-4. Enter your painting title and entry number (#1 or #2)
-5. Click **"Prepare My Image"**
-6. Click **"Download"** to save the ready-to-submit file
+3. Enter your painting title and entry number (#1 or #2)
+4. Click **"Prepare My Image"**
+5. Click **"Download"** to save the ready-to-submit file
+
+The default output meets FWS juried-show specs: **1920 px** longest side, under **5 MB**, Baseline JPEG, sRGB, 72 DPI. If a specific show's prospectus lists different requirements, use the **Advanced settings** panel on the Painting Details step to override the longest-side pixels, max file size, and/or DPI.
 
 For detailed instructions, open `help.html` in your browser or click the "Help" link inside the app.
 
@@ -27,14 +28,14 @@ If a TIFF or other image cannot be decoded by your browser, the tool now tells y
 
 ### Architecture
 
-The application is a zero-dependency, client-side single-page app split across two files:
+The application is a zero-dependency, client-side single-page app. Runtime code is `index.html` + `app.js`; the rest supports docs, tests, and build tasks:
 
 | File | Purpose |
 |------|---------|
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (73 tests) |
+| `app.test.js` | Jest test suite (80 tests) |
 | `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
@@ -49,21 +50,23 @@ No build step, no bundler, no framework. Opens directly from the filesystem via 
 
 When the user clicks "Prepare My Image," the following steps run in sequence:
 
-1. **Resize** — `calcResize()` computes target dimensions. The longest side is scaled to the target (1800px juried, 600px non-juried). Images smaller than the target are not upscaled.
+1. **Read settings** — `parseAdvanced()` reads the Advanced panel's three input fields (longest-side pixels, max file size MB, DPI) and falls back to `DEFAULT_TARGET_SIZE` (1920), `DEFAULT_MAX_BYTES` (5 MB), and `DEFAULT_DPI` (72) when an input is blank, non-numeric, or out of range. DPI is clamped to the JFIF 16-bit range (1–65535).
 
-2. **Canvas render** — A `<canvas>` element is created at the target dimensions. `ctx.drawImage()` renders the source image scaled to fit. Canvas output is inherently sRGB.
+2. **Resize** — `calcResize()` computes target dimensions. The longest side is scaled to the parsed target size. Images smaller than the target are not upscaled.
 
-3. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds 5 MB, quality is reduced by 0.05 and retried, clamped to a floor of 0.30.
+3. **Canvas render** — A `<canvas>` element is created at the target dimensions. `ctx.drawImage()` renders the source image scaled to fit. Canvas output is inherently sRGB.
 
-4. **DPI metadata stamping** — `patchDPIBytes()` directly manipulates the JPEG binary to set 72 DPI in the JFIF APP0 header:
+4. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds the parsed max-bytes cap, quality is reduced by 0.05 and retried, clamped to a floor of 0.30.
+
+5. **DPI metadata stamping** — `patchDPIBytes(bytes, dpi)` directly manipulates the JPEG binary to set the chosen DPI in the JFIF APP0 header:
    - Byte 13: `0x01` (units = dots per inch)
-   - Bytes 14–15: `0x00 0x48` (X density = 72)
-   - Bytes 16–17: `0x00 0x48` (Y density = 72)
+   - Bytes 14–15: X density (big-endian); e.g. `0x00 0x48` for 72 DPI, `0x01 0x2C` for 300 DPI
+   - Bytes 16–17: Y density (big-endian, same encoding)
    - If no JFIF APP0 segment exists, one is injected after the SOI marker.
 
-5. **Filename construction** — `buildFilename(title, entryNum)` uses the configurable `config.lastName` and `config.firstName` to produce `GALLIONcarol#N_Title.jpg` (default), sanitizing characters that are invalid in downloaded filenames.
+6. **Filename construction** — `buildFilename(title, entryNum)` uses the configurable `config.lastName` and `config.firstName` to produce `GALLIONcarol#N_Title.jpg` (default), sanitizing characters that are invalid in downloaded filenames.
 
-6. **Download** — A blob URL is created via `URL.createObjectURL()` and assigned to an `<a download>` element.
+7. **Download** — A blob URL is created via `URL.createObjectURL()` and assigned to an `<a download>` element.
 
 ### Key Functions
 
@@ -75,12 +78,11 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `sanitizeTitle(title)` | Pure | Removes filename-invalid characters and trims trailing dots/spaces |
 | `buildFilename(title, entryNum)` | Pure | Constructs FWS-format filename |
 | `calcResize(w, h, target)` | Pure | Computes target dimensions, scale factor, and whether downscaling occurred |
-| `targetForShowType(type)` | Pure | Returns 1800 (juried) or 600 (non-juried) |
-| `patchDPIBytes(uint8array)` | Pure | Patches or injects JFIF APP0 DPI metadata in a JPEG byte array |
-| `patchDPI(blob)` | Async | Blob wrapper around `patchDPIBytes` |
+| `parseAdvanced(rawTargetSize, rawMaxMb, rawDpi)` | Pure | Parses the Advanced panel inputs; returns `{ targetSize, maxBytes, dpi }` with defaults on blank/invalid/out-of-range input |
+| `patchDPIBytes(uint8array, dpi)` | Pure | Patches or injects JFIF APP0 density metadata (defaults to 72 DPI when `dpi` is omitted) |
+| `patchDPI(blob, dpi)` | Async | Blob wrapper around `patchDPIBytes` |
 | `canvasToBlob(canvas, quality)` | Async | Promise wrapper for `canvas.toBlob()` |
 | `exportWithSizeLimit(canvas, max)` | Async | Iteratively reduces JPEG quality to meet size limit |
-| `selectShowType(type)` | DOM | Updates state and UI for show type selection |
 | `selectEntry(num)` | DOM | Updates state and UI for entry number |
 | `goToStep(step)` | DOM | Navigates wizard steps, validates prerequisites |
 | `handleFile(file)` | DOM | Validates file type, triggers FileReader and Image loading |
@@ -102,13 +104,14 @@ Application state is held in a closure-scoped `state` object:
 {
   originalFile: null,      // File object from upload
   originalImage: null,     // HTMLImageElement with naturalWidth/Height
-  showType: 'juried',      // 'juried' or 'nonjuried'
   entryNumber: 1,          // 1 or 2
   processedBlobURL: null   // blob: URL for the processed image
 }
 ```
 
 `getState()` exposes the current state for testing. `resetState()` restores defaults and revokes any active blob URL.
+
+Target size, max file size, and DPI are not kept in state — they are read fresh from the Advanced panel's `<input>` elements at process time via `parseAdvanced()`. Defaults (`DEFAULT_TARGET_SIZE = 1920`, `DEFAULT_MAX_BYTES = 5 MB`, `DEFAULT_DPI = 72`) are exported for test access.
 
 ### Testing
 
@@ -128,20 +131,20 @@ make clean         # remove node_modules and coverage
 | Statements | 100% |
 | Lines | 100% |
 | Functions | 100% |
-| Branches | 98.33% |
+| Branches | 98.63% |
 
 The single uncovered branch is the UMD module-format detection (`typeof module !== 'undefined'`), which always takes the Node path during testing.
 
 **Test structure:**
 
 - **Config** — `getConfig`, `setConfig`, config-driven filename generation
-- **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `targetForShowType`
+- **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `parseAdvanced`
 - **DPI patching** — existing JFIF patching, header injection, non-JPEG passthrough, data integrity
 - **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (including quality reduction loop and floor)
 - **State management** — defaults, reset, blob URL lifecycle
-- **DOM interactions** — show type/entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
+- **DOM interactions** — entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
 - **Upload listeners** — click, dragover, dragleave, drop (with and without files), file input change
-- **End-to-end `processImage`** — juried/non-juried shows, small image warnings, entry numbering, blob URL revocation
+- **End-to-end `processImage`** — default-path processing, Advanced target-size override, Advanced max-bytes override, Advanced DPI override (with byte-level blob verification), small-image warning, sanitized filename, blob URL revocation
 
 ### JFIF APP0 Binary Format Reference
 
@@ -180,7 +183,7 @@ mom/
   index.html          # Main application (HTML + CSS)
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite (73 tests)
+  app.test.js         # Jest test suite (80 tests)
   Makefile            # build, test, run, clean targets
   package.json        # npm config (test script)
   README.md           # This file

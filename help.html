@@ -209,7 +209,7 @@ h1 {
   <div class="card">
     <h2>What's on This Page</h2>
     <ul class="toc">
-      <li><a href="#quick-start">Quick Start (5 easy steps)</a></li>
+      <li><a href="#quick-start">Quick Start (4 easy steps)</a></li>
       <li><a href="#show-specs">Show Specifications</a></li>
       <li><a href="#step-by-step">Detailed Step-by-Step Guide</a></li>
       <li><a href="#filenames">How Filenames Work</a></li>
@@ -226,7 +226,6 @@ h1 {
     <ol class="step-guide">
       <li><strong>Open the tool</strong> &mdash; Double-click <code>index.html</code> to open it in your web browser.</li>
       <li><strong>Upload your painting</strong> &mdash; Drag your image file onto the dotted area, or click to browse for it.</li>
-      <li><strong>Pick your show type</strong> &mdash; Click "Juried Show" or "Non-Juried Show."</li>
       <li><strong>Enter your painting title and entry number</strong> &mdash; Type the title exactly as you want it to appear. Choose Entry #1 or Entry #2.</li>
       <li><strong>Click "Prepare My Image" then "Download"</strong> &mdash; Your image is resized, renamed, and ready to submit.</li>
     </ol>
@@ -237,42 +236,36 @@ h1 {
   <!-- Show Specs -->
   <div class="card" id="show-specs">
     <h2>Show Specifications</h2>
-    <p>The Florida Watercolor Society has different image requirements depending on the type of show. The tool handles all of this for you automatically.</p>
+    <p>The tool produces images that meet the Florida Watercolor Society's juried show requirements by default. You don't need to remember these numbers &mdash; the tool takes care of them automatically.</p>
 
     <table class="specs-table">
       <tr>
         <th>Requirement</th>
-        <th>Juried Show</th>
-        <th>Non-Juried Show</th>
+        <th>Default</th>
       </tr>
       <tr>
         <td>Longest side</td>
-        <td>1800 pixels</td>
-        <td>600 pixels</td>
+        <td>1920 pixels</td>
       </tr>
       <tr>
         <td>Resolution</td>
         <td>72 DPI</td>
-        <td>72 DPI</td>
       </tr>
       <tr>
         <td>File format</td>
-        <td>JPEG</td>
-        <td>JPEG</td>
+        <td>JPEG (Baseline)</td>
       </tr>
       <tr>
         <td>Color profile</td>
-        <td>sRGB</td>
         <td>sRGB</td>
       </tr>
       <tr>
         <td>Maximum file size</td>
         <td>5 MB</td>
-        <td>5 MB</td>
       </tr>
     </table>
 
-    <div class="tip">You don't need to remember these numbers. Just pick the show type and the tool takes care of the rest.</div>
+    <div class="tip">If a specific show's prospectus lists different pixel or file-size requirements, click <strong>Advanced settings</strong> on the Painting Details step and enter the values from the prospectus. Leave any field blank to keep the default.</div>
   </div>
 
   <!-- Detailed Step-by-Step -->
@@ -295,30 +288,23 @@ h1 {
 
     <div class="tip">Use the highest-quality image you have. The tool will resize it down, but it can't add detail to a small image.</div>
 
-    <h3>Step 3: Choose Your Show Type</h3>
-    <p>You'll see two large buttons:</p>
-    <ul style="margin-left: 24px; margin-bottom: 12px;">
-      <li><strong>Juried Show</strong> &mdash; For juried exhibitions. Your image will be resized so the longest side is exactly 1800 pixels.</li>
-      <li><strong>Non-Juried Show</strong> &mdash; For member shows and non-juried exhibitions. Your image will be resized so the longest side is exactly 600 pixels.</li>
-    </ul>
-    <p>"Juried Show" is selected by default. Click the other button if you need "Non-Juried Show" instead.</p>
-    <p>Click <strong>Next</strong> to continue.</p>
-
-    <h3>Step 4: Enter Your Painting Details</h3>
+    <h3>Step 3: Enter Your Painting Details</h3>
     <p><strong>Painting Title:</strong> Type the title of your painting exactly as you want it in the filename. For example: <em>Sunset Over Tampa Bay</em></p>
     <p>If your title contains characters that are not allowed in downloaded filenames, the tool removes them automatically while keeping the title as close as possible to what you typed.</p>
     <p><strong>Entry Number:</strong> FWS allows up to 2 entries per show. Click <strong>Entry #1</strong> for your first painting or <strong>Entry #2</strong> for your second.</p>
     <p>Below the form, you'll see a preview of what the filename will look like, for example:</p>
     <p style="background: #f7fafc; padding: 10px 16px; border-radius: 6px; font-family: monospace; font-size: 15px;">GALLIONcarol#1_Sunset Over Tampa Bay.jpg</p>
 
-    <h3>Step 5: Prepare and Download</h3>
+    <p><strong>Advanced settings (optional):</strong> Most shows use the default 1920&nbsp;px / 5&nbsp;MB / 72&nbsp;DPI output, so you can ignore this panel. If a prospectus lists different requirements, click <strong>Advanced settings</strong> and enter the longest-side pixels, max file size, and/or DPI it asks for. Leave a field blank to keep the default for that field.</p>
+
+    <h3>Step 4: Prepare and Download</h3>
     <p>Click the big <strong>"Prepare My Image"</strong> button. The tool will:</p>
     <ul style="margin-left: 24px; margin-bottom: 12px;">
       <li>Resize your image to the right dimensions</li>
       <li>Convert it to JPEG format</li>
       <li>Set the resolution to 72 DPI</li>
       <li>Set the color profile to sRGB</li>
-      <li>Make sure the file is under 5 MB</li>
+      <li>Make sure the file is under the max size</li>
       <li>Name it correctly for FWS</li>
     </ul>
     <p>You'll see your original image side by side with the processed version, along with details about both.</p>
@@ -369,7 +355,7 @@ h1 {
     <p class="faq-a">The tool will not stretch or enlarge your image, because that would make it look blurry. Instead, it will show you a note explaining that your image is smaller than recommended. For best results, start with the largest, highest-quality image you have.</p>
 
     <p class="faq-q">What does "72 DPI" mean?</p>
-    <p class="faq-a">DPI stands for "dots per inch." It's a technical setting that tells screens and printers how to display the image. The FWS requires 72 DPI, and the tool sets this automatically. You don't need to worry about it.</p>
+    <p class="faq-a">DPI stands for "dots per inch." It's a technical setting that tells screens and printers how to display the image. The tool stamps 72 DPI by default, which is the common value for digital submissions. If a specific show's prospectus asks for a different DPI (300 DPI is common for print-related shows), open <strong>Advanced settings</strong> on the Painting Details step and enter that value in the DPI field.</p>
 
     <p class="faq-q">What does "sRGB" mean?</p>
     <p class="faq-a">sRGB is a standard way of representing colors that ensures your painting looks consistent on different screens. The tool converts your image to sRGB automatically.</p>
