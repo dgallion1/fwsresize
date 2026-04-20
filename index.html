@@ -506,7 +506,7 @@ input[type="file"] { display: none; }
     <div id="upload-warning" class="warning" style="display:none;"></div>
 
     <div class="btn-row" id="upload-next-row" style="display:none;">
-      <button class="btn btn-primary" onclick="FWSApp.goToStep(2)">Next</button>
+      <button class="btn btn-primary" id="upload-next-btn" type="button">Next</button>
     </div>
   </div>
 
@@ -517,14 +517,14 @@ input[type="file"] { display: none; }
 
     <div class="form-group">
       <label for="painting-title">Painting Title</label>
-      <input type="text" id="painting-title" placeholder="e.g. Sunset Over Tampa Bay" oninput="FWSApp.updateFilenamePreview()">
+      <input type="text" id="painting-title" placeholder="e.g. Sunset Over Tampa Bay">
     </div>
 
     <div class="form-group">
       <label>Entry Number</label>
       <div class="entry-buttons">
-        <button class="entry-btn selected" id="entry-1" onclick="FWSApp.selectEntry(1)">Entry #1</button>
-        <button class="entry-btn" id="entry-2" onclick="FWSApp.selectEntry(2)">Entry #2</button>
+        <button class="entry-btn selected" id="entry-1" type="button">Entry #1</button>
+        <button class="entry-btn" id="entry-2" type="button">Entry #2</button>
       </div>
     </div>
 
@@ -549,8 +549,8 @@ input[type="file"] { display: none; }
     </details>
 
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="FWSApp.goToStep(1)">Back</button>
-      <button class="btn btn-primary" id="process-btn" onclick="FWSApp.processImage()">Prepare My Image</button>
+      <button class="btn btn-outline" id="step2-back-btn" type="button">Back</button>
+      <button class="btn btn-primary" id="process-btn" type="button">Prepare My Image</button>
     </div>
   </div>
 
@@ -569,11 +569,11 @@ input[type="file"] { display: none; }
       <div class="comparison">
         <div class="panel">
           <h3>Original</h3>
-          <img id="result-original" alt="Original" onclick="FWSApp.openLightbox('result-original')">
+          <img id="result-original" alt="Original">
         </div>
         <div class="panel">
           <h3>Processed</h3>
-          <img id="result-processed" alt="Processed" onclick="FWSApp.openLightbox('result-processed')">
+          <img id="result-processed" alt="Processed">
         </div>
       </div>
 
@@ -603,24 +603,20 @@ input[type="file"] { display: none; }
       <div id="size-warning" class="warning" style="display:none;"></div>
 
       <div class="btn-row">
-        <button class="btn btn-outline" onclick="FWSApp.goToStep(2)">Back</button>
+        <button class="btn btn-outline" id="step3-back-btn" type="button">Back</button>
         <a class="btn btn-success" id="download-btn" download>Download</a>
-        <button class="btn btn-outline" onclick="FWSApp.startOver()">Prepare Another Image</button>
+        <button class="btn btn-outline" id="start-over-btn" type="button">Prepare Another Image</button>
       </div>
     </div>
   </div>
 </div>
 
 <div class="lightbox" id="lightbox">
-  <button class="lightbox-close" id="lightbox-close" onclick="FWSApp.closeLightbox()" aria-label="Close">&times;</button>
+  <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close">&times;</button>
   <img class="lightbox-img" id="lightbox-img" alt="Expanded view">
   <div class="lightbox-hint">Scroll to zoom &bull; Drag to pan &bull; Esc or click background to close</div>
 </div>
 
-<script src="app.js?v=DEPLOY_VERSION"></script>
-<script>
-  FWSApp.initUploadListeners();
-  FWSApp.initLightbox();
-</script>
+<script src="app.js?v=DEPLOY_VERSION" defer></script>
 </body>
 </html>

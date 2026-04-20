@@ -580,6 +580,27 @@ describe('handleFile', () => {
     expect(app.getState().originalFile).toBe(file);
   });
 
+  test('rejects SVG even though it is image/*', () => {
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const file = new File(['<svg/>'], 'evil.svg', { type: 'image/svg+xml' });
+    const result = app.handleFile(file);
+    expect(result).toBe(false);
+    expect(alertMock).toHaveBeenCalledWith('Please choose an image file (JPEG, PNG, or TIFF).');
+    alertMock.mockRestore();
+  });
+
+  test('rejects oversize file', () => {
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    // Fake an oversized file without allocating the bytes.
+    const file = new File(['x'], 'huge.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(file, 'size', { value: app.MAX_UPLOAD_BYTES + 1 });
+    const result = app.handleFile(file);
+    expect(result).toBe(false);
+    expect(alertMock).toHaveBeenCalledWith(expect.stringContaining('upload limit'));
+    expect(app.getState().originalFile).toBeNull();
+    alertMock.mockRestore();
+  });
+
   test('FileReader onload sets up Image and img.onload updates DOM', () => {
     // Mock FileReader to synchronously trigger onload
     const origFileReader = global.FileReader;
@@ -1601,5 +1622,63 @@ describe('FWS_MIN_LONGEST_SIDE upload warning', () => {
     app.startOver();
     expect(document.getElementById('upload-warning').style.display).toBe('none');
     expect(document.getElementById('title-warning').style.display).toBe('none');
+  });
+});
+
+describe('initAppHandlers', () => {
+  let app;
+  beforeEach(() => {
+    app = setupDOM();
+    app.initAppHandlers();
+  });
+
+  test('entry-1 / entry-2 clicks select entry', () => {
+    document.getElementById('entry-2').click();
+    expect(app.getState().entryNumber).toBe(2);
+    document.getElementById('entry-1').click();
+    expect(app.getState().entryNumber).toBe(1);
+  });
+
+  test('painting-title input updates filename preview', () => {
+    const input = document.getElementById('painting-title');
+    input.value = 'Misty Morning';
+    input.dispatchEvent(new Event('input'));
+    expect(document.getElementById('filename-text').textContent).toContain('Misty Morning');
+  });
+
+  test('step2-back-btn goes to step 1', () => {
+    // goToStep(2) demands an uploaded image; give it one so the alert path
+    // doesn't fire and pollute the test output.
+    app.getState().originalImage = { naturalWidth: 100, naturalHeight: 100 };
+    app.goToStep(2);
+    document.getElementById('step2-back-btn').click();
+    expect(document.getElementById('step-1').classList.contains('visible')).toBe(true);
+  });
+
+  test('upload-next-btn goes to step 2 when image is loaded', () => {
+    app.getState().originalImage = { naturalWidth: 100, naturalHeight: 100 };
+    document.getElementById('upload-next-btn').click();
+    expect(document.getElementById('step-2').classList.contains('visible')).toBe(true);
+  });
+
+  test('start-over-btn resets state', () => {
+    app.getState().entryNumber = 2;
+    document.getElementById('start-over-btn').click();
+    expect(app.getState().entryNumber).toBe(1);
+  });
+
+  test('lightbox-close click hides lightbox', () => {
+    app.initLightbox();
+    document.getElementById('result-original').src = 'data:image/jpeg;base64,x';
+    app.openLightbox('result-original');
+    document.getElementById('lightbox-close').click();
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(false);
+  });
+
+  test('result-original click opens lightbox', () => {
+    app.initLightbox();
+    document.getElementById('result-original').src = 'data:image/jpeg;base64,x';
+    document.getElementById('result-original').click();
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(true);
   });
 });

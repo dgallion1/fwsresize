@@ -26,6 +26,13 @@
   // Characters that are either stripped from the filename or known to trip up
   // some art-submission upload pipelines — surfaced as a non-blocking warning.
   var PROBLEM_TITLE_CHARS = ['&', "'", '"', '/', '\\', ':'];
+  // Formats the app actually supports. SVG is deliberately excluded — the rest
+  // of the pipeline assumes raster input that canvas.drawImage can rasterize.
+  var ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/tiff'];
+  // Upper bound on upload size. Reading past this into a base64 data URL
+  // (FileReader.readAsDataURL inflates by ~33%) is a fast path to OOM'ing the
+  // browser tab. 100 MB comfortably covers a high-res TIFF scan.
+  var MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
   // ---- State ----
   let state = {
@@ -262,8 +269,14 @@
   }
 
   function handleFile(file) {
-    if (!file.type.startsWith('image/')) {
+    if (ALLOWED_MIME_TYPES.indexOf(file.type) === -1) {
       alert('Please choose an image file (JPEG, PNG, or TIFF).');
+      return false;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      alert('This file is ' + formatSize(file.size) + ', which is larger than the ' +
+        formatSize(MAX_UPLOAD_BYTES) + ' upload limit. Please choose a smaller file.');
       return false;
     }
 
@@ -586,6 +599,47 @@
     }
   }
 
+  function initAppHandlers() {
+    // Step 2 / 3 navigation and actions that previously lived on inline
+    // onclick= attributes. Keeping the handlers here lets the nginx CSP ban
+    // 'unsafe-inline' on script-src.
+    function on(id, event, handler) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener(event, handler);
+    }
+
+    on('painting-title', 'input', updateFilenamePreview);
+
+    on('entry-1', 'click', function () { selectEntry(1); });
+    on('entry-2', 'click', function () { selectEntry(2); });
+
+    on('upload-next-btn', 'click', function () { goToStep(2); });
+    on('step2-back-btn', 'click', function () { goToStep(1); });
+    on('process-btn', 'click', function () { processImage(); });
+    on('step3-back-btn', 'click', function () { goToStep(2); });
+    on('start-over-btn', 'click', startOver);
+
+    on('result-original', 'click', function () { openLightbox('result-original'); });
+    on('result-processed', 'click', function () { openLightbox('result-processed'); });
+    on('lightbox-close', 'click', closeLightbox);
+  }
+
+  function init() {
+    initUploadListeners();
+    initLightbox();
+    initAppHandlers();
+  }
+
+  // Auto-bootstrap in the browser. In tests (CommonJS require() in jsdom)
+  // module is defined, so init*() is driven explicitly by the test setup.
+  if (typeof document !== 'undefined' && typeof module === 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  }
+
   // ---- Exports ----
   exports.getConfig = getConfig;
   exports.setConfig = setConfig;
@@ -602,6 +656,8 @@
   exports.DEFAULT_DPI = DEFAULT_DPI;
   exports.FWS_MIN_LONGEST_SIDE = FWS_MIN_LONGEST_SIDE;
   exports.PROBLEM_TITLE_CHARS = PROBLEM_TITLE_CHARS;
+  exports.ALLOWED_MIME_TYPES = ALLOWED_MIME_TYPES;
+  exports.MAX_UPLOAD_BYTES = MAX_UPLOAD_BYTES;
   exports.patchDPIBytes = patchDPIBytes;
   exports.patchDPI = patchDPI;
   exports.canvasToBlob = canvasToBlob;
@@ -613,6 +669,8 @@
   exports.processImage = processImage;
   exports.startOver = startOver;
   exports.initUploadListeners = initUploadListeners;
+  exports.initAppHandlers = initAppHandlers;
+  exports.init = init;
   exports.openLightbox = openLightbox;
   exports.closeLightbox = closeLightbox;
   exports.initLightbox = initLightbox;

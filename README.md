@@ -42,7 +42,7 @@ The application is a zero-dependency, client-side single-page app. Runtime code 
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (115 tests) |
+| `app.test.js` | Jest test suite (124 tests) |
 | `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
@@ -95,12 +95,14 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `exportWithSizeLimit(canvas, max)` | Async | Exports a JPEG whose size fits `max`: steps quality down from 0.92 when oversized, or steps it up (toward 1.00) to use remaining budget |
 | `selectEntry(num)` | DOM | Updates state and UI for entry number |
 | `goToStep(step)` | DOM | Navigates wizard steps, validates prerequisites |
-| `handleFile(file)` | DOM | Validates file type, triggers FileReader and Image loading; calls `updateUploadWarning` after decode |
+| `handleFile(file)` | DOM | Validates file against `ALLOWED_MIME_TYPES` and `MAX_UPLOAD_BYTES`, then triggers FileReader and Image loading; calls `updateUploadWarning` after decode |
 | `updateTitleWarning(title)` | DOM | Shows/hides the under-filename warning listing problematic characters |
 | `updateUploadWarning(w, h)` | DOM | Shows/hides the under-preview warning when longest side is below `FWS_MIN_LONGEST_SIDE` |
 | `processImage()` | Async/DOM | Full processing pipeline — resize, export, patch, display results |
 | `startOver()` | DOM | Resets all state and UI to initial values |
 | `initUploadListeners()` | DOM | Binds drag-and-drop, click, and change listeners on upload area |
+| `initAppHandlers()` | DOM | Wires buttons and the title input via `addEventListener` so CSP can ban `'unsafe-inline'` on script-src |
+| `init()` | DOM | Calls `initUploadListeners`, `initLightbox`, and `initAppHandlers`; auto-runs in the browser on `DOMContentLoaded` |
 | `openLightbox(id)` / `closeLightbox()` | DOM | Show/hide the full-viewport image viewer, copying the given `<img>`'s `src` |
 | `lightboxZoomBy(factor)` | Pure-ish | Multiplies the lightbox zoom factor (clamped to 0.5–20) and applies the CSS transform |
 | `lightboxStartDrag` / `lightboxMoveDrag` / `lightboxEndDrag` | DOM | Pan state machine driven by mouse/touch events |
@@ -133,6 +135,8 @@ Warning thresholds are also constants, exported for test access:
 
 - `FWS_MIN_LONGEST_SIDE = 1800` — upload-time small-image warning fires when `max(width, height)` is below this.
 - `PROBLEM_TITLE_CHARS = ['&', "'", '"', '/', '\\', ':']` — title-character warning lists any of these that appear in the typed title.
+- `ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/tiff']` — anything else is rejected at upload. SVG is deliberately excluded.
+- `MAX_UPLOAD_BYTES = 100 * 1024 * 1024` — uploads over 100 MB are rejected before the FileReader runs, to avoid OOMing the tab on base64 inflation.
 
 ### Testing
 
@@ -149,12 +153,12 @@ make clean         # remove node_modules and coverage
 
 | Metric | Coverage |
 |--------|----------|
-| Statements | 100% |
-| Lines | 100% |
-| Functions | 100% |
-| Branches | 99% |
+| Statements | ~96% |
+| Lines | ~96% |
+| Functions | ~91% |
+| Branches | ~89% |
 
-The single uncovered branch is the UMD module-format detection (`typeof module !== 'undefined'`), which always takes the Node path during testing.
+The uncovered paths are the UMD module-format detection (always Node in tests) and the browser auto-bootstrap (`DOMContentLoaded` wiring and the `if (!el) return` guards in `initAppHandlers`).
 
 **Test structure:**
 
@@ -168,6 +172,8 @@ The single uncovered branch is the UMD module-format detection (`typeof module !
 - **End-to-end `processImage`** — default-path processing, Advanced target-size override, Advanced max-bytes override, Advanced DPI override (with byte-level blob verification), small-image warning, sanitized filename, blob URL revocation
 - **Warnings** — title-character warning across every problematic character, upload-time FWS 1800 px minimum warning (boundary at exactly 1800, longer-dimension selection, failure clears prior warning, `startOver` clears both)
 - **Lightbox** — open/close, zoom clamping, mouse-drag pan, single-finger touch-drag pan, wheel zoom in/out, Escape to close, background-click to close, image-click does not close, two-finger touch ignored
+- **Handler wiring** — `initAppHandlers` binds the title input, entry buttons, step navigation, start-over, lightbox close, and result-thumbnail click-to-expand
+- **Upload guards** — SVG rejection despite `image/*` prefix, oversize files rejected against `MAX_UPLOAD_BYTES`
 
 ### JFIF APP0 Binary Format Reference
 
@@ -206,12 +212,12 @@ mom/
   index.html          # Main application (HTML + CSS); references app.js?v=DEPLOY_VERSION
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite (115 tests)
+  app.test.js         # Jest test suite (124 tests)
   Makefile            # build, test, run, clean, docker-deploy targets
   package.json        # npm config (test script)
-  Dockerfile          # nginx:alpine image; seds DEPLOY_VERSION into index.html at build
+  Dockerfile          # nginx:1.27-alpine image; seds DEPLOY_VERSION into index.html at build
   docker-compose.yml  # Runs the container on $PORT (default 3002)
-  default.conf        # nginx cache headers: no-cache on HTML, immutable on JS
+  default.conf        # nginx cache + security headers (CSP, nosniff, Referrer-Policy, Permissions-Policy)
   README.md           # This file
   .gitignore          # Ignores node_modules, coverage
 ```
@@ -227,6 +233,16 @@ make docker-deploy     # rsync to DEPLOY_HOST (default: spark) and rebuild the c
 The Makefile computes `VERSION := $(git-sha)-$(timestamp)` locally and passes it as a Docker build-arg. The Dockerfile `sed`s it into `index.html` so every deploy ships a fresh `<script src="app.js?v={VERSION}">`. Combined with the `default.conf` cache policy (no-cache on HTML, `immutable` long cache on JS), a deploy is live immediately in all browsers without manual cache-clearing: the browser revalidates the HTML on next load, sees the new versioned JS URL, and fetches the new JS.
 
 Overrides: `DEPLOY_HOST`, `DEPLOY_PORT`, and `SSH` are all Makefile variables. Default is `spark` over `tailscale ssh` on port `3002`.
+
+### Security
+
+The app is entirely client-side (no server code, no auth, no data storage, no outbound calls), so the attack surface is narrow. Hardening applied:
+
+- **Content-Security-Policy** (set in `default.conf`) — `script-src 'self'` with no `'unsafe-inline'`, so any future inline-script regression is blocked by the browser. All handlers are wired through `addEventListener` from `initAppHandlers()`; there are zero `on*=` attributes or inline `<script>` blocks. `img-src 'self' blob: data:` covers the preview (data URL) and processed-image (blob URL) flows. `frame-ancestors 'none'` prevents clickjacking embedding; `object-src 'none'` and `base-uri 'self'` close off a couple of small sinks.
+- **Other response headers** — `X-Content-Type-Options: nosniff` (HTML and JS), `Referrer-Policy: no-referrer`, `Permissions-Policy` denying camera/mic/geolocation/FLoC, and `server_tokens off` to hide the nginx version.
+- **Upload validation** — `handleFile` checks the MIME type against an allow-list (`image/jpeg`, `image/png`, `image/tiff`) before doing anything with the file. SVG is explicitly rejected even though it matches `image/*`. A 100 MB size cap runs before `FileReader.readAsDataURL`, which would otherwise inflate the payload by ~33% as base64 and can OOM the tab.
+- **Pinned base image** — the Dockerfile pins `nginx:1.27-alpine` so rebuilds are reproducible; bump deliberately rather than drifting on `:alpine`.
+- **Safe DOM writes** — every user-controlled string (painting title, filename, warnings) flows through `textContent`, never `innerHTML`. There are no DOM-XSS sinks in the app today; CSP is defense-in-depth for the future.
 
 ### Customization
 
