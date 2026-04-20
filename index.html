@@ -56,7 +56,12 @@ h1 {
   font-weight: 600;
   font-size: 16px;
   transition: all 0.3s;
+  cursor: pointer;
+  user-select: none;
 }
+
+.step-dot:hover { filter: brightness(0.92); }
+.step-dot:focus-visible { outline: 2px solid #3182ce; outline-offset: 2px; }
 
 .step-dot.active {
   background: #3182ce;
@@ -476,9 +481,9 @@ input[type="file"] { display: none; }
   </p>
 
   <div class="steps-bar">
-    <div class="step-dot active" id="dot-1">1</div>
-    <div class="step-dot" id="dot-2">2</div>
-    <div class="step-dot" id="dot-3">3</div>
+    <div class="step-dot active" id="dot-1" role="button" tabindex="0" aria-label="Go to step 1: Upload">1</div>
+    <div class="step-dot" id="dot-2" role="button" tabindex="0" aria-label="Go to step 2: Configure">2</div>
+    <div class="step-dot" id="dot-3" role="button" tabindex="0" aria-label="Go to step 3: Results">3</div>
   </div>
 
   <!-- STEP 1: Upload -->

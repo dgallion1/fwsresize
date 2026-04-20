@@ -563,6 +563,27 @@
         handleFile(fileInput.files[0]);
       }
     });
+
+    for (var i = 1; i <= 3; i++) {
+      (function (step) {
+        var dot = document.getElementById('dot-' + step);
+        if (!dot) return;
+        function navigate() {
+          if (step === 3 && !state.processedBlobURL) {
+            alert('Please process an image first.');
+            return;
+          }
+          goToStep(step);
+        }
+        dot.addEventListener('click', navigate);
+        dot.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            navigate();
+          }
+        });
+      })(i);
+    }
   }
 
   // ---- Exports ----
