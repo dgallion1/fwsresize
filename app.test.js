@@ -1421,3 +1421,142 @@ describe('processImage', () => {
     document.createElement.mockRestore();
   });
 });
+
+// ---- Warning tests (FWS minimum resolution + problematic title chars) ----
+
+describe('findProblemTitleChars', () => {
+  let app;
+  beforeEach(() => { app = setupDOM(); });
+
+  test('returns empty for clean title', () => {
+    expect(app.findProblemTitleChars('Sunset Over Tampa Bay')).toEqual([]);
+  });
+
+  test('flags ampersand', () => {
+    expect(app.findProblemTitleChars('Black & White')).toEqual(['&']);
+  });
+
+  test('flags apostrophe', () => {
+    expect(app.findProblemTitleChars("Carol's Painting")).toEqual(["'"]);
+  });
+
+  test('flags every problem character', () => {
+    expect(app.findProblemTitleChars('a & b \' c " d / e \\ f : g'))
+      .toEqual(['&', "'", '"', '/', '\\', ':']);
+  });
+
+  test('exports the canonical problem-char list', () => {
+    expect(app.PROBLEM_TITLE_CHARS).toEqual(['&', "'", '"', '/', '\\', ':']);
+  });
+});
+
+describe('title warning (updateFilenamePreview)', () => {
+  let app;
+  beforeEach(() => { app = setupDOM(); });
+
+  test('shows warning when title contains problematic characters', () => {
+    document.getElementById('painting-title').value = "Carol's Painting & Co.";
+    app.updateFilenamePreview();
+    const warn = document.getElementById('title-warning');
+    expect(warn.style.display).toBe('block');
+    expect(warn.textContent).toContain("'");
+    expect(warn.textContent).toContain('&');
+  });
+
+  test('hides warning when title is clean', () => {
+    const warn = document.getElementById('title-warning');
+    warn.style.display = 'block';
+    document.getElementById('painting-title').value = 'Sunset Over Tampa Bay';
+    app.updateFilenamePreview();
+    expect(warn.style.display).toBe('none');
+  });
+
+  test('hides warning for empty title', () => {
+    document.getElementById('painting-title').value = '';
+    app.updateFilenamePreview();
+    expect(document.getElementById('title-warning').style.display).toBe('none');
+  });
+});
+
+describe('FWS_MIN_LONGEST_SIDE upload warning', () => {
+  let app;
+  beforeEach(() => { app = setupDOM(); });
+
+  test('exports the constant at 1800 px', () => {
+    expect(app.FWS_MIN_LONGEST_SIDE).toBe(1800);
+  });
+
+  function uploadImageOfSize(width, height) {
+    const origFileReader = global.FileReader;
+    global.FileReader = function () {
+      this.readAsDataURL = function () {
+        this.onload({ target: { result: 'data:image/jpeg;base64,fake' } });
+      };
+    };
+    const origImage = global.Image;
+    global.Image = function () {
+      const img = {};
+      Object.defineProperty(img, 'src', {
+        set: function () {
+          Object.defineProperty(img, 'naturalWidth', { value: width, configurable: true });
+          Object.defineProperty(img, 'naturalHeight', { value: height, configurable: true });
+          if (img.onload) img.onload();
+        },
+        configurable: true,
+      });
+      return img;
+    };
+    const file = new File(['test'], 'painting.jpg', { type: 'image/jpeg' });
+    app.handleFile(file);
+    global.FileReader = origFileReader;
+    global.Image = origImage;
+  }
+
+  test('shows warning when longest side is below 1800 px', () => {
+    uploadImageOfSize(1200, 900);
+    const warn = document.getElementById('upload-warning');
+    expect(warn.style.display).toBe('block');
+    expect(warn.textContent).toContain('1200');
+    expect(warn.textContent).toContain('1800');
+  });
+
+  test('uses the longer of the two dimensions', () => {
+    uploadImageOfSize(900, 1600);
+    const warn = document.getElementById('upload-warning');
+    expect(warn.style.display).toBe('block');
+    expect(warn.textContent).toContain('1600');
+  });
+
+  test('hides warning when longest side meets the 1800 px minimum', () => {
+    uploadImageOfSize(1800, 1200);
+    expect(document.getElementById('upload-warning').style.display).toBe('none');
+  });
+
+  test('hides warning for images well above the minimum', () => {
+    uploadImageOfSize(4000, 3000);
+    expect(document.getElementById('upload-warning').style.display).toBe('none');
+  });
+
+  test('clears warning when FileReader fails after a prior small image', () => {
+    uploadImageOfSize(1000, 800);
+    expect(document.getElementById('upload-warning').style.display).toBe('block');
+
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const origFileReader = global.FileReader;
+    global.FileReader = function () {
+      this.readAsDataURL = function () { this.onerror(new Error('boom')); };
+    };
+    app.handleFile(new File(['x'], 'bad.jpg', { type: 'image/jpeg' }));
+    expect(document.getElementById('upload-warning').style.display).toBe('none');
+    global.FileReader = origFileReader;
+    alertMock.mockRestore();
+  });
+
+  test('startOver hides both warnings', () => {
+    document.getElementById('upload-warning').style.display = 'block';
+    document.getElementById('title-warning').style.display = 'block';
+    app.startOver();
+    expect(document.getElementById('upload-warning').style.display).toBe('none');
+    expect(document.getElementById('title-warning').style.display).toBe('none');
+  });
+});

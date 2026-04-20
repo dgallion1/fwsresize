@@ -21,6 +21,11 @@
   var DEFAULT_TARGET_SIZE = 1920;
   var DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
   var DEFAULT_DPI = 72;
+  // FWS juried-show minimum longest-side resolution.
+  var FWS_MIN_LONGEST_SIDE = 1800;
+  // Characters that are either stripped from the filename or known to trip up
+  // some art-submission upload pipelines — surfaced as a non-blocking warning.
+  var PROBLEM_TITLE_CHARS = ['&', "'", '"', '/', '\\', ':'];
 
   // ---- State ----
   let state = {
@@ -62,6 +67,14 @@
 
   function buildFilename(title, entryNum) {
     return config.lastName + config.firstName + '#' + entryNum + '_' + sanitizeTitle(title) + '.jpg';
+  }
+
+  function findProblemTitleChars(title) {
+    var found = [];
+    for (var i = 0; i < PROBLEM_TITLE_CHARS.length; i++) {
+      if (title.indexOf(PROBLEM_TITLE_CHARS[i]) !== -1) found.push(PROBLEM_TITLE_CHARS[i]);
+    }
+    return found;
   }
 
   function calcResize(origWidth, origHeight, targetSize) {
@@ -187,6 +200,34 @@
     var title = document.getElementById('painting-title').value;
     var filename = buildFilename(title, state.entryNumber);
     document.getElementById('filename-text').textContent = filename;
+    updateTitleWarning(title);
+  }
+
+  function updateTitleWarning(title) {
+    var warn = document.getElementById('title-warning');
+    var found = findProblemTitleChars(title);
+    if (found.length > 0) {
+      warn.textContent =
+        'Heads up: your title contains ' + found.join(' ') +
+        ' — some of these will be removed from the filename, and they occasionally cause problems on art-submission upload sites.';
+      warn.style.display = 'block';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+
+  function updateUploadWarning(width, height) {
+    var warn = document.getElementById('upload-warning');
+    var longest = Math.max(width, height);
+    if (longest < FWS_MIN_LONGEST_SIDE) {
+      warn.textContent =
+        'Heads up: this image\u2019s longest side is ' + longest + ' pixels. ' +
+        'FWS juried shows require at least ' + FWS_MIN_LONGEST_SIDE + ' px. ' +
+        'Consider re-scanning or re-photographing this painting at a higher resolution before submitting.';
+      warn.style.display = 'block';
+    } else {
+      warn.style.display = 'none';
+    }
   }
 
   function goToStep(step) {
@@ -218,6 +259,7 @@
       document.getElementById('original-info').textContent = '';
       document.getElementById('original-preview').style.display = 'none';
       document.getElementById('upload-next-row').style.display = 'none';
+      document.getElementById('upload-warning').style.display = 'none';
     }
 
     state.originalFile = file;
@@ -239,6 +281,7 @@
           img.naturalWidth + ' x ' + img.naturalHeight + ' pixels  \u00B7  ' + formatSize(file.size);
         document.getElementById('original-preview').style.display = 'block';
         document.getElementById('upload-next-row').style.display = 'flex';
+        updateUploadWarning(img.naturalWidth, img.naturalHeight);
       };
       img.src = e.target.result;
     };
@@ -357,6 +400,9 @@
     document.getElementById('adv-target-size').value = '';
     document.getElementById('adv-max-mb').value = '';
     document.getElementById('adv-dpi').value = '';
+
+    document.getElementById('title-warning').style.display = 'none';
+    document.getElementById('upload-warning').style.display = 'none';
 
     goToStep(1);
   }
@@ -512,11 +558,14 @@
   exports.formatSize = formatSize;
   exports.sanitizeTitle = sanitizeTitle;
   exports.buildFilename = buildFilename;
+  exports.findProblemTitleChars = findProblemTitleChars;
   exports.calcResize = calcResize;
   exports.parseAdvanced = parseAdvanced;
   exports.DEFAULT_TARGET_SIZE = DEFAULT_TARGET_SIZE;
   exports.DEFAULT_MAX_BYTES = DEFAULT_MAX_BYTES;
   exports.DEFAULT_DPI = DEFAULT_DPI;
+  exports.FWS_MIN_LONGEST_SIDE = FWS_MIN_LONGEST_SIDE;
+  exports.PROBLEM_TITLE_CHARS = PROBLEM_TITLE_CHARS;
   exports.patchDPIBytes = patchDPIBytes;
   exports.patchDPI = patchDPI;
   exports.canvasToBlob = canvasToBlob;

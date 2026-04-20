@@ -14,6 +14,11 @@ A client-side web application that prepares watercolor painting images for Flori
 
 The default output meets FWS juried-show specs: **1920 px** longest side, under **5 MB**, Baseline JPEG, sRGB, 72 DPI. If a specific show's prospectus lists different requirements, use the **Advanced settings** panel on the Painting Details step to override the longest-side pixels, max file size, and/or DPI.
 
+The tool surfaces two non-blocking warnings so nothing gets submitted by surprise:
+
+- **Small image warning** — at upload time, if the image's longest side is under **1800 px** (the FWS juried-show minimum), a note appears recommending a higher-resolution scan or re-photo.
+- **Title character warning** — under the filename preview, if the title contains `&`, `'`, `"`, `/`, `\`, or `:`, a note appears listing them (some are removed from the filename; all occasionally trip up art-submission upload sites).
+
 For detailed instructions, open `help.html` in your browser or click the "Help" link inside the app.
 
 **Tip:** on the results screen, click either the Original or Processed thumbnail to expand it. Scroll to zoom, drag to pan, Esc or click the dark background to close.
@@ -37,7 +42,7 @@ The application is a zero-dependency, client-side single-page app. Runtime code 
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (98 tests) |
+| `app.test.js` | Jest test suite (113 tests) |
 | `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
@@ -79,6 +84,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `formatSize(bytes)` | Pure | Formats byte count as B/KB/MB string |
 | `sanitizeTitle(title)` | Pure | Removes filename-invalid characters and trims trailing dots/spaces |
 | `buildFilename(title, entryNum)` | Pure | Constructs FWS-format filename |
+| `findProblemTitleChars(title)` | Pure | Returns which of `PROBLEM_TITLE_CHARS` appear in the title (powers the title-character warning) |
 | `calcResize(w, h, target)` | Pure | Computes target dimensions, scale factor, and whether downscaling occurred |
 | `parseAdvanced(rawTargetSize, rawMaxMb, rawDpi)` | Pure | Parses the Advanced panel inputs; returns `{ targetSize, maxBytes, dpi }` with defaults on blank/invalid/out-of-range input |
 | `patchDPIBytes(uint8array, dpi)` | Pure | Patches or injects JFIF APP0 density metadata (defaults to 72 DPI when `dpi` is omitted) |
@@ -87,7 +93,9 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `exportWithSizeLimit(canvas, max)` | Async | Iteratively reduces JPEG quality to meet size limit |
 | `selectEntry(num)` | DOM | Updates state and UI for entry number |
 | `goToStep(step)` | DOM | Navigates wizard steps, validates prerequisites |
-| `handleFile(file)` | DOM | Validates file type, triggers FileReader and Image loading |
+| `handleFile(file)` | DOM | Validates file type, triggers FileReader and Image loading; calls `updateUploadWarning` after decode |
+| `updateTitleWarning(title)` | DOM | Shows/hides the under-filename warning listing problematic characters |
+| `updateUploadWarning(w, h)` | DOM | Shows/hides the under-preview warning when longest side is below `FWS_MIN_LONGEST_SIDE` |
 | `processImage()` | Async/DOM | Full processing pipeline — resize, export, patch, display results |
 | `startOver()` | DOM | Resets all state and UI to initial values |
 | `initUploadListeners()` | DOM | Binds drag-and-drop, click, and change listeners on upload area |
@@ -119,6 +127,11 @@ Application state is held in a closure-scoped `state` object:
 
 Target size, max file size, and DPI are not kept in state — they are read fresh from the Advanced panel's `<input>` elements at process time via `parseAdvanced()`. Defaults (`DEFAULT_TARGET_SIZE = 1920`, `DEFAULT_MAX_BYTES = 5 MB`, `DEFAULT_DPI = 72`) are exported for test access.
 
+Warning thresholds are also constants, exported for test access:
+
+- `FWS_MIN_LONGEST_SIDE = 1800` — upload-time small-image warning fires when `max(width, height)` is below this.
+- `PROBLEM_TITLE_CHARS = ['&', "'", '"', '/', '\\', ':']` — title-character warning lists any of these that appear in the typed title.
+
 ### Testing
 
 Tests use Jest with jsdom.
@@ -144,13 +157,14 @@ The single uncovered branch is the UMD module-format detection (`typeof module !
 **Test structure:**
 
 - **Config** — `getConfig`, `setConfig`, config-driven filename generation
-- **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `parseAdvanced`
+- **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `parseAdvanced`, `findProblemTitleChars`
 - **DPI patching** — existing JFIF patching, header injection, non-JPEG passthrough, data integrity
 - **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (including quality reduction loop and floor)
 - **State management** — defaults, reset, blob URL lifecycle
 - **DOM interactions** — entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
 - **Upload listeners** — click, dragover, dragleave, drop (with and without files), file input change
 - **End-to-end `processImage`** — default-path processing, Advanced target-size override, Advanced max-bytes override, Advanced DPI override (with byte-level blob verification), small-image warning, sanitized filename, blob URL revocation
+- **Warnings** — title-character warning across every problematic character, upload-time FWS 1800 px minimum warning (boundary at exactly 1800, longer-dimension selection, failure clears prior warning, `startOver` clears both)
 - **Lightbox** — open/close, zoom clamping, mouse-drag pan, single-finger touch-drag pan, wheel zoom in/out, Escape to close, background-click to close, image-click does not close, two-finger touch ignored
 
 ### JFIF APP0 Binary Format Reference
@@ -190,7 +204,7 @@ mom/
   index.html          # Main application (HTML + CSS); references app.js?v=DEPLOY_VERSION
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite (98 tests)
+  app.test.js         # Jest test suite (113 tests)
   Makefile            # build, test, run, clean, docker-deploy targets
   package.json        # npm config (test script)
   Dockerfile          # nginx:alpine image; seds DEPLOY_VERSION into index.html at build
