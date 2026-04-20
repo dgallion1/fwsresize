@@ -394,6 +394,70 @@ input[type="file"] { display: none; }
   margin-top: 12px;
 }
 
+/* Result thumbnails are clickable */
+.comparison .panel img { cursor: zoom-in; }
+
+/* Lightbox (click-to-expand image viewer) */
+.lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 1000;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.lightbox.visible { display: flex; align-items: center; justify-content: center; }
+
+.lightbox-img {
+  max-width: 95vw;
+  max-height: 95vh;
+  transform-origin: center center;
+  will-change: transform;
+  cursor: grab;
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+.lightbox-img.grabbing { cursor: grabbing; }
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+}
+
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+.lightbox-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 14px;
+  border-radius: 6px;
+  pointer-events: none;
+  text-align: center;
+  max-width: 90vw;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .comparison { flex-direction: column; }
@@ -496,11 +560,11 @@ input[type="file"] { display: none; }
       <div class="comparison">
         <div class="panel">
           <h3>Original</h3>
-          <img id="result-original" alt="Original">
+          <img id="result-original" alt="Original" onclick="FWSApp.openLightbox('result-original')">
         </div>
         <div class="panel">
           <h3>Processed</h3>
-          <img id="result-processed" alt="Processed">
+          <img id="result-processed" alt="Processed" onclick="FWSApp.openLightbox('result-processed')">
         </div>
       </div>
 
@@ -537,9 +601,16 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" onclick="FWSApp.closeLightbox()" aria-label="Close">&times;</button>
+  <img class="lightbox-img" id="lightbox-img" alt="Expanded view">
+  <div class="lightbox-hint">Scroll to zoom &bull; Drag to pan &bull; Esc or click background to close</div>
+</div>
+
 <script src="app.js?v=DEPLOY_VERSION"></script>
 <script>
   FWSApp.initUploadListeners();
+  FWSApp.initLightbox();
 </script>
 </body>
 </html>

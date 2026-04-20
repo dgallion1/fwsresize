@@ -361,6 +361,119 @@
     goToStep(1);
   }
 
+  // ---- Lightbox (click-to-expand image viewer with zoom + pan) ----
+
+  var LIGHTBOX_MIN_ZOOM = 0.5;
+  var LIGHTBOX_MAX_ZOOM = 20;
+  var LIGHTBOX_WHEEL_FACTOR = 1.2;
+
+  var lightbox = {
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    dragging: false,
+    dragOriginX: 0,
+    dragOriginY: 0,
+  };
+
+  function getLightboxState() { return lightbox; }
+
+  function applyLightboxTransform() {
+    var img = document.getElementById('lightbox-img');
+    img.style.transform =
+      'translate(' + lightbox.panX + 'px, ' + lightbox.panY + 'px) scale(' + lightbox.zoom + ')';
+  }
+
+  function openLightbox(srcElementId) {
+    var srcImg = document.getElementById(srcElementId);
+    if (!srcImg || !srcImg.src) return false;
+
+    document.getElementById('lightbox-img').src = srcImg.src;
+    lightbox.zoom = 1;
+    lightbox.panX = 0;
+    lightbox.panY = 0;
+    applyLightboxTransform();
+    document.getElementById('lightbox').classList.add('visible');
+    return true;
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('visible');
+  }
+
+  function lightboxZoomBy(factor) {
+    var newZoom = lightbox.zoom * factor;
+    if (newZoom < LIGHTBOX_MIN_ZOOM) newZoom = LIGHTBOX_MIN_ZOOM;
+    if (newZoom > LIGHTBOX_MAX_ZOOM) newZoom = LIGHTBOX_MAX_ZOOM;
+    lightbox.zoom = newZoom;
+    applyLightboxTransform();
+  }
+
+  function lightboxStartDrag(clientX, clientY) {
+    lightbox.dragging = true;
+    lightbox.dragOriginX = clientX - lightbox.panX;
+    lightbox.dragOriginY = clientY - lightbox.panY;
+    document.getElementById('lightbox-img').classList.add('grabbing');
+  }
+
+  function lightboxMoveDrag(clientX, clientY) {
+    if (!lightbox.dragging) return;
+    lightbox.panX = clientX - lightbox.dragOriginX;
+    lightbox.panY = clientY - lightbox.dragOriginY;
+    applyLightboxTransform();
+  }
+
+  function lightboxEndDrag() {
+    lightbox.dragging = false;
+    document.getElementById('lightbox-img').classList.remove('grabbing');
+  }
+
+  function initLightbox() {
+    var overlay = document.getElementById('lightbox');
+    var img = document.getElementById('lightbox-img');
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('visible')) {
+        closeLightbox();
+      }
+    });
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeLightbox();
+    });
+
+    overlay.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      lightboxZoomBy(e.deltaY < 0 ? LIGHTBOX_WHEEL_FACTOR : 1 / LIGHTBOX_WHEEL_FACTOR);
+    }, { passive: false });
+
+    img.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      lightboxStartDrag(e.clientX, e.clientY);
+    });
+    document.addEventListener('mousemove', function (e) {
+      lightboxMoveDrag(e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseup', function () {
+      lightboxEndDrag();
+    });
+
+    // Single-finger touch drag; two-finger pinch not yet supported.
+    img.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) {
+        lightboxStartDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    });
+    document.addEventListener('touchmove', function (e) {
+      if (lightbox.dragging && e.touches.length === 1) {
+        lightboxMoveDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    });
+    document.addEventListener('touchend', function () {
+      lightboxEndDrag();
+    });
+  }
+
   function initUploadListeners() {
     var uploadArea = document.getElementById('upload-area');
     var fileInput = document.getElementById('file-input');
@@ -415,5 +528,13 @@
   exports.processImage = processImage;
   exports.startOver = startOver;
   exports.initUploadListeners = initUploadListeners;
+  exports.openLightbox = openLightbox;
+  exports.closeLightbox = closeLightbox;
+  exports.initLightbox = initLightbox;
+  exports.lightboxZoomBy = lightboxZoomBy;
+  exports.lightboxStartDrag = lightboxStartDrag;
+  exports.lightboxMoveDrag = lightboxMoveDrag;
+  exports.lightboxEndDrag = lightboxEndDrag;
+  exports.getLightboxState = getLightboxState;
 
 })(typeof module !== 'undefined' && module.exports ? module.exports : (window.FWSApp = {}));

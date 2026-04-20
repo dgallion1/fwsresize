@@ -801,6 +801,191 @@ describe('initUploadListeners', () => {
   });
 });
 
+// ---- Lightbox tests ----
+
+describe('lightbox', () => {
+  let app;
+  beforeEach(() => {
+    app = setupDOM();
+    app.initLightbox();
+    // Give result-original a fake src so openLightbox has something to copy
+    document.getElementById('result-original').src = 'data:image/jpeg;base64,fake';
+  });
+
+  test('openLightbox shows overlay and copies src with zoom reset', () => {
+    const state = app.getLightboxState();
+    state.zoom = 3;
+    state.panX = 50;
+    state.panY = -20;
+
+    const ok = app.openLightbox('result-original');
+    expect(ok).toBe(true);
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(true);
+    expect(document.getElementById('lightbox-img').src).toContain('data:image/jpeg;base64,fake');
+    expect(app.getLightboxState().zoom).toBe(1);
+    expect(app.getLightboxState().panX).toBe(0);
+    expect(app.getLightboxState().panY).toBe(0);
+  });
+
+  test('openLightbox returns false when source element has no src', () => {
+    // result-processed hasn't been populated
+    const ok = app.openLightbox('result-processed');
+    expect(ok).toBe(false);
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(false);
+  });
+
+  test('closeLightbox hides overlay', () => {
+    app.openLightbox('result-original');
+    app.closeLightbox();
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(false);
+  });
+
+  test('lightboxZoomBy multiplies current zoom', () => {
+    app.openLightbox('result-original');
+    app.lightboxZoomBy(2);
+    expect(app.getLightboxState().zoom).toBe(2);
+    app.lightboxZoomBy(1.5);
+    expect(app.getLightboxState().zoom).toBeCloseTo(3);
+  });
+
+  test('lightboxZoomBy clamps at max zoom', () => {
+    app.openLightbox('result-original');
+    for (let i = 0; i < 50; i++) app.lightboxZoomBy(2);
+    expect(app.getLightboxState().zoom).toBe(20);
+  });
+
+  test('lightboxZoomBy clamps at min zoom', () => {
+    app.openLightbox('result-original');
+    for (let i = 0; i < 50; i++) app.lightboxZoomBy(0.5);
+    expect(app.getLightboxState().zoom).toBe(0.5);
+  });
+
+  test('drag updates panX and panY by mouse delta', () => {
+    app.openLightbox('result-original');
+    app.lightboxStartDrag(100, 100);
+    app.lightboxMoveDrag(150, 130);
+    expect(app.getLightboxState().panX).toBe(50);
+    expect(app.getLightboxState().panY).toBe(30);
+    app.lightboxEndDrag();
+    expect(app.getLightboxState().dragging).toBe(false);
+  });
+
+  test('move without drag is ignored', () => {
+    app.openLightbox('result-original');
+    const before = { x: app.getLightboxState().panX, y: app.getLightboxState().panY };
+    app.lightboxMoveDrag(500, 500);
+    expect(app.getLightboxState().panX).toBe(before.x);
+    expect(app.getLightboxState().panY).toBe(before.y);
+  });
+
+  test('wheel scroll up zooms in', () => {
+    app.openLightbox('result-original');
+    const overlay = document.getElementById('lightbox');
+    const evt = new Event('wheel', { bubbles: true, cancelable: true });
+    evt.deltaY = -100;
+    overlay.dispatchEvent(evt);
+    expect(app.getLightboxState().zoom).toBeGreaterThan(1);
+  });
+
+  test('wheel scroll down zooms out', () => {
+    app.openLightbox('result-original');
+    app.lightboxZoomBy(4);
+    const overlay = document.getElementById('lightbox');
+    const evt = new Event('wheel', { bubbles: true, cancelable: true });
+    evt.deltaY = 100;
+    overlay.dispatchEvent(evt);
+    expect(app.getLightboxState().zoom).toBeLessThan(4);
+  });
+
+  test('Escape key closes the lightbox when visible', () => {
+    app.openLightbox('result-original');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.getElementById('lightbox').classList.contains('visible')).toBe(false);
+  });
+
+  test('Escape key is ignored when lightbox is hidden', () => {
+    // Sanity: closing something already closed is a no-op; mainly ensures the
+    // handler does not throw when the overlay is not visible.
+    expect(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    }).not.toThrow();
+  });
+
+  test('clicking the overlay background closes the lightbox', () => {
+    app.openLightbox('result-original');
+    const overlay = document.getElementById('lightbox');
+    const clickEvt = new Event('click', { bubbles: true });
+    Object.defineProperty(clickEvt, 'target', { value: overlay });
+    overlay.dispatchEvent(clickEvt);
+    expect(overlay.classList.contains('visible')).toBe(false);
+  });
+
+  test('clicking on the image does not close', () => {
+    app.openLightbox('result-original');
+    const overlay = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    const clickEvt = new Event('click', { bubbles: true });
+    Object.defineProperty(clickEvt, 'target', { value: img });
+    overlay.dispatchEvent(clickEvt);
+    expect(overlay.classList.contains('visible')).toBe(true);
+  });
+
+  test('mouse drag event chain updates pan and ends cleanly', () => {
+    app.openLightbox('result-original');
+    const img = document.getElementById('lightbox-img');
+
+    const down = new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 });
+    img.dispatchEvent(down);
+    expect(app.getLightboxState().dragging).toBe(true);
+    expect(img.classList.contains('grabbing')).toBe(true);
+
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 175, clientY: 120 }));
+    expect(app.getLightboxState().panX).toBe(75);
+    expect(app.getLightboxState().panY).toBe(20);
+
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(app.getLightboxState().dragging).toBe(false);
+    expect(img.classList.contains('grabbing')).toBe(false);
+  });
+
+  test('touch drag event chain updates pan for single-finger touch', () => {
+    app.openLightbox('result-original');
+    const img = document.getElementById('lightbox-img');
+
+    const start = new Event('touchstart', { bubbles: true });
+    start.touches = [{ clientX: 10, clientY: 10 }];
+    img.dispatchEvent(start);
+    expect(app.getLightboxState().dragging).toBe(true);
+
+    const move = new Event('touchmove', { bubbles: true });
+    move.touches = [{ clientX: 60, clientY: 40 }];
+    document.dispatchEvent(move);
+    expect(app.getLightboxState().panX).toBe(50);
+    expect(app.getLightboxState().panY).toBe(30);
+
+    document.dispatchEvent(new Event('touchend', { bubbles: true }));
+    expect(app.getLightboxState().dragging).toBe(false);
+  });
+
+  test('two-finger touchstart is ignored (no pinch support yet)', () => {
+    app.openLightbox('result-original');
+    const img = document.getElementById('lightbox-img');
+    const start = new Event('touchstart', { bubbles: true });
+    start.touches = [{ clientX: 0, clientY: 0 }, { clientX: 50, clientY: 50 }];
+    img.dispatchEvent(start);
+    expect(app.getLightboxState().dragging).toBe(false);
+  });
+
+  test('touchmove without active drag is a no-op', () => {
+    app.openLightbox('result-original');
+    const before = app.getLightboxState().panX;
+    const move = new Event('touchmove', { bubbles: true });
+    move.touches = [{ clientX: 500, clientY: 500 }];
+    document.dispatchEvent(move);
+    expect(app.getLightboxState().panX).toBe(before);
+  });
+});
+
 // ---- Canvas and export tests ----
 
 describe('canvasToBlob', () => {

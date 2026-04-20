@@ -16,6 +16,8 @@ The default output meets FWS juried-show specs: **1920 px** longest side, under 
 
 For detailed instructions, open `help.html` in your browser or click the "Help" link inside the app.
 
+**Tip:** on the results screen, click either the Original or Processed thumbnail to expand it. Scroll to zoom, drag to pan, Esc or click the dark background to close.
+
 **Important:** Keep `index.html` and `app.js` in the same folder — the tool needs both files.
 
 Your images never leave your computer. All processing happens locally in your browser.
@@ -35,7 +37,7 @@ The application is a zero-dependency, client-side single-page app. Runtime code 
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (80 tests) |
+| `app.test.js` | Jest test suite (98 tests) |
 | `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
@@ -89,6 +91,10 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `processImage()` | Async/DOM | Full processing pipeline — resize, export, patch, display results |
 | `startOver()` | DOM | Resets all state and UI to initial values |
 | `initUploadListeners()` | DOM | Binds drag-and-drop, click, and change listeners on upload area |
+| `openLightbox(id)` / `closeLightbox()` | DOM | Show/hide the full-viewport image viewer, copying the given `<img>`'s `src` |
+| `lightboxZoomBy(factor)` | Pure-ish | Multiplies the lightbox zoom factor (clamped to 0.5–20) and applies the CSS transform |
+| `lightboxStartDrag` / `lightboxMoveDrag` / `lightboxEndDrag` | DOM | Pan state machine driven by mouse/touch events |
+| `initLightbox()` | DOM | Binds keydown/wheel/mouse/touch listeners for the lightbox |
 
 ### State Management
 
@@ -131,7 +137,7 @@ make clean         # remove node_modules and coverage
 | Statements | 100% |
 | Lines | 100% |
 | Functions | 100% |
-| Branches | 98.70% |
+| Branches | 99% |
 
 The single uncovered branch is the UMD module-format detection (`typeof module !== 'undefined'`), which always takes the Node path during testing.
 
@@ -145,6 +151,7 @@ The single uncovered branch is the UMD module-format detection (`typeof module !
 - **DOM interactions** — entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
 - **Upload listeners** — click, dragover, dragleave, drop (with and without files), file input change
 - **End-to-end `processImage`** — default-path processing, Advanced target-size override, Advanced max-bytes override, Advanced DPI override (with byte-level blob verification), small-image warning, sanitized filename, blob URL revocation
+- **Lightbox** — open/close, zoom clamping, mouse-drag pan, single-finger touch-drag pan, wheel zoom in/out, Escape to close, background-click to close, image-click does not close, two-finger touch ignored
 
 ### JFIF APP0 Binary Format Reference
 
@@ -183,7 +190,7 @@ mom/
   index.html          # Main application (HTML + CSS); references app.js?v=DEPLOY_VERSION
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite (80 tests)
+  app.test.js         # Jest test suite (98 tests)
   Makefile            # build, test, run, clean, docker-deploy targets
   package.json        # npm config (test script)
   Dockerfile          # nginx:alpine image; seds DEPLOY_VERSION into index.html at build
