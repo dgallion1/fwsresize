@@ -1,4 +1,8 @@
-.PHONY: build test run clean
+.PHONY: build test run clean docker-deploy
+
+DEPLOY_HOST ?= spark
+DEPLOY_PORT ?= 3002
+SSH ?= tailscale ssh
 
 build: node_modules
 
@@ -13,3 +17,12 @@ run: build
 
 clean:
 	rm -rf node_modules coverage
+
+docker-deploy:
+	rsync -az --delete -e '$(SSH)' \
+		--exclude='node_modules' \
+		--exclude='coverage' \
+		--exclude='.git' \
+		--exclude='.codex' \
+		./ $(DEPLOY_HOST):~/work/mom/
+	$(SSH) $(DEPLOY_HOST) "DOCKER_BUILDKIT=1 docker compose -f ~/work/mom/docker-compose.yml build && PORT=$(DEPLOY_PORT) docker compose -f ~/work/mom/docker-compose.yml up -d"

@@ -1,0 +1,12 @@
+services:
+  fwsresize:
+    build: .
+    container_name: fwsresize
+    ports:
+      - "${PORT:-3002}:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 64M
