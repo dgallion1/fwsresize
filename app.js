@@ -179,9 +179,24 @@
     var quality = 0.92;
     var blob = await canvasToBlob(canvas, quality);
 
-    while (blob.size > maxBytes && quality > 0.3) {
-      quality = Math.max(0.3, Math.round((quality - 0.05) * 100) / 100);
-      blob = await canvasToBlob(canvas, quality);
+    if (blob.size > maxBytes) {
+      // Starting quality already exceeds the budget — step down until it fits
+      // or we hit the 0.30 floor (in which case we surface a warning upstream).
+      while (blob.size > maxBytes && quality > 0.3) {
+        quality = Math.max(0.3, Math.round((quality - 0.05) * 100) / 100);
+        blob = await canvasToBlob(canvas, quality);
+      }
+    } else {
+      // Starting quality fits — step up to use the remaining budget, stopping
+      // before the next step would overshoot. Keeps maximum JPEG fidelity
+      // within the cap instead of leaving the budget unused.
+      while (quality < 1.0) {
+        var nextQuality = Math.min(1.0, Math.round((quality + 0.02) * 100) / 100);
+        var nextBlob = await canvasToBlob(canvas, nextQuality);
+        if (nextBlob.size > maxBytes) break;
+        quality = nextQuality;
+        blob = nextBlob;
+      }
     }
 
     return { blob: blob, quality: quality };

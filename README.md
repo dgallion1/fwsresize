@@ -42,7 +42,7 @@ The application is a zero-dependency, client-side single-page app. Runtime code 
 | `index.html` | HTML structure + CSS styling, references `app.js` |
 | `app.js` | All application logic (state, image processing, DOM manipulation) |
 | `help.html` | User-facing help guide |
-| `app.test.js` | Jest test suite (113 tests) |
+| `app.test.js` | Jest test suite (115 tests) |
 | `Makefile` | Build, test, and run targets |
 
 `app.js` uses a UMD-style IIFE pattern:
@@ -63,7 +63,9 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 
 3. **Canvas render** — A `<canvas>` element is created at the target dimensions. `ctx.drawImage()` renders the source image scaled to fit. Canvas output is inherently sRGB.
 
-4. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds the parsed max-bytes cap, quality is reduced by 0.05 and retried, clamped to a floor of 0.30. If the final blob is still over the cap at the floor, a warning is surfaced on the results page so the user knows the cap wasn't met (rather than silently shipping an over-cap file).
+4. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. The encoder then moves in whichever direction uses the budget best:
+   - **If the starting blob exceeds the cap,** quality is stepped down by 0.05 and retried, clamped to a floor of 0.30. If the final blob is still over the cap at the floor, a warning is surfaced on the results page so the user knows the cap wasn't met (rather than silently shipping an over-cap file).
+   - **If the starting blob fits under the cap,** quality is stepped up by 0.02 (ceiling 1.00) as long as the next encode also fits. This uses the remaining budget for maximum JPEG fidelity instead of shipping a file far smaller than the cap allows.
 
 5. **DPI metadata stamping** — `patchDPIBytes(bytes, dpi)` directly manipulates the JPEG binary to set the chosen DPI in the JFIF APP0 header:
    - Byte 13: `0x01` (units = dots per inch)
@@ -90,7 +92,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 | `patchDPIBytes(uint8array, dpi)` | Pure | Patches or injects JFIF APP0 density metadata (defaults to 72 DPI when `dpi` is omitted) |
 | `patchDPI(blob, dpi)` | Async | Blob wrapper around `patchDPIBytes` |
 | `canvasToBlob(canvas, quality)` | Async | Promise wrapper for `canvas.toBlob()` |
-| `exportWithSizeLimit(canvas, max)` | Async | Iteratively reduces JPEG quality to meet size limit |
+| `exportWithSizeLimit(canvas, max)` | Async | Exports a JPEG whose size fits `max`: steps quality down from 0.92 when oversized, or steps it up (toward 1.00) to use remaining budget |
 | `selectEntry(num)` | DOM | Updates state and UI for entry number |
 | `goToStep(step)` | DOM | Navigates wizard steps, validates prerequisites |
 | `handleFile(file)` | DOM | Validates file type, triggers FileReader and Image loading; calls `updateUploadWarning` after decode |
@@ -159,7 +161,7 @@ The single uncovered branch is the UMD module-format detection (`typeof module !
 - **Config** — `getConfig`, `setConfig`, config-driven filename generation
 - **Pure functions** — `formatSize`, `buildFilename`, `calcResize`, `parseAdvanced`, `findProblemTitleChars`
 - **DPI patching** — existing JFIF patching, header injection, non-JPEG passthrough, data integrity
-- **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (including quality reduction loop and floor)
+- **Async blob processing** — `patchDPI`, `canvasToBlob`, `exportWithSizeLimit` (quality reduction loop + 0.30 floor, upward iteration toward 1.00 when budget allows, and the stop-before-overshoot boundary)
 - **State management** — defaults, reset, blob URL lifecycle
 - **DOM interactions** — entry selection, filename preview, step navigation with validation, file upload with mocked FileReader/Image chain, and decode/read error handling
 - **Upload listeners** — click, dragover, dragleave, drop (with and without files), file input change
@@ -204,7 +206,7 @@ mom/
   index.html          # Main application (HTML + CSS); references app.js?v=DEPLOY_VERSION
   app.js              # Application logic (UMD module)
   help.html           # User-facing help guide
-  app.test.js         # Jest test suite (113 tests)
+  app.test.js         # Jest test suite (115 tests)
   Makefile            # build, test, run, clean, docker-deploy targets
   package.json        # npm config (test script)
   Dockerfile          # nginx:alpine image; seds DEPLOY_VERSION into index.html at build

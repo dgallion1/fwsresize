@@ -1007,15 +1007,58 @@ describe('exportWithSizeLimit', () => {
   let app;
   beforeEach(() => { app = setupDOM(); });
 
-  test('returns blob immediately if under size limit', async () => {
+  test('iterates up to quality 1.0 when every step fits the budget', async () => {
     const smallBlob = new Blob(['x'.repeat(1000)], { type: 'image/jpeg' });
     const canvas = {
       toBlob: jest.fn((cb) => cb(smallBlob)),
     };
     const result = await app.exportWithSizeLimit(canvas, 5 * 1024 * 1024);
     expect(result.blob).toBe(smallBlob);
-    expect(result.quality).toBeCloseTo(0.92);
-    expect(canvas.toBlob).toHaveBeenCalledTimes(1);
+    expect(result.quality).toBeCloseTo(1.0);
+    // Starts at 0.92, then 0.94, 0.96, 0.98, 1.00 = 5 encodes.
+    expect(canvas.toBlob).toHaveBeenCalledTimes(5);
+  });
+
+  test('stops upward iteration before next quality would overshoot budget', async () => {
+    // Simulate a canvas where file size scales with quality. The budget
+    // should accept 0.92 and 0.94, but 0.96 would overshoot.
+    const sizeByQuality = {
+      0.92: 800 * 1024,
+      0.94: 900 * 1024,
+      0.96: 1100 * 1024,   // overshoots the 1 MB budget
+      0.98: 1400 * 1024,
+      1.0:  2000 * 1024,
+    };
+    const canvas = {
+      toBlob: jest.fn((cb, mime, q) => {
+        const rounded = Math.round(q * 100) / 100;
+        cb(new Blob(['x'.repeat(sizeByQuality[rounded])], { type: 'image/jpeg' }));
+      }),
+    };
+    const result = await app.exportWithSizeLimit(canvas, 1024 * 1024);
+    expect(result.quality).toBeCloseTo(0.94);
+    expect(result.blob.size).toBe(900 * 1024);
+    // Called at 0.92 (fits) → 0.94 (fits) → 0.96 (overshoots, rejected). 3 calls.
+    expect(canvas.toBlob).toHaveBeenCalledTimes(3);
+  });
+
+  test('upward iteration does not run when starting quality overshoots', async () => {
+    // If 0.92 is already over budget, we should fall into the down-branch
+    // only — no upward probing.
+    const largeBlob = new Blob(['x'.repeat(6 * 1024 * 1024)], { type: 'image/jpeg' });
+    const smallBlob = new Blob(['x'.repeat(1000)], { type: 'image/jpeg' });
+    let call = 0;
+    const canvas = {
+      toBlob: jest.fn((cb) => {
+        call++;
+        cb(call === 1 ? largeBlob : smallBlob);
+      }),
+    };
+    const result = await app.exportWithSizeLimit(canvas, 5 * 1024 * 1024);
+    // 0.92 overshoots → step down to 0.87 where mock now returns smallBlob.
+    expect(result.quality).toBeCloseTo(0.87);
+    expect(result.blob).toBe(smallBlob);
+    expect(canvas.toBlob).toHaveBeenCalledTimes(2);
   });
 
   test('reduces quality when blob exceeds size limit', async () => {
