@@ -248,8 +248,8 @@ h1 {
         <td>1920 pixels</td>
       </tr>
       <tr>
-        <td>Resolution</td>
-        <td>72 DPI</td>
+        <td>DPI (metadata flag)</td>
+        <td>72</td>
       </tr>
       <tr>
         <td>File format</td>
@@ -300,9 +300,9 @@ h1 {
     <h3>Step 4: Prepare and Download</h3>
     <p>Click the big <strong>"Prepare My Image"</strong> button. The tool will:</p>
     <ul style="margin-left: 24px; margin-bottom: 12px;">
-      <li>Resize your image to the right dimensions</li>
+      <li>Resize your image to the right pixel dimensions</li>
       <li>Convert it to JPEG format</li>
-      <li>Set the resolution to 72 DPI</li>
+      <li>Stamp the DPI metadata flag (72 by default)</li>
       <li>Set the color profile to sRGB</li>
       <li>Make sure the file is under the max size</li>
       <li>Name it correctly for FWS</li>
@@ -354,8 +354,11 @@ h1 {
     <p class="faq-q">What if my image is smaller than the required size?</p>
     <p class="faq-a">The tool will not stretch or enlarge your image, because that would make it look blurry. Instead, it will show you a note explaining that your image is smaller than recommended. For best results, start with the largest, highest-quality image you have.</p>
 
-    <p class="faq-q">What does "72 DPI" mean?</p>
-    <p class="faq-a">DPI stands for "dots per inch." It's a technical setting that tells screens and printers how to display the image. The tool stamps 72 DPI by default, which is the common value for digital submissions. If a specific show's prospectus asks for a different DPI (300 DPI is common for print-related shows), open <strong>Advanced settings</strong> on the Painting Details step and enter that value in the DPI field.</p>
+    <p class="faq-q">What does DPI mean, and should I change it?</p>
+    <p class="faq-a">DPI stands for "dots per inch." It's a small flag the tool writes into the file's metadata &mdash; that's it. It does <strong>not</strong> change a single pixel of your image.</p>
+    <p class="faq-a">Print programs read the DPI flag to decide a physical print size: pixels &divide; DPI = inches. A 1920-pixel-wide image at 72 DPI would print about 27 inches wide; the same image at 300 DPI would print about 6.4 inches wide. The pixel content is identical either way.</p>
+    <p class="faq-a">Screens and web browsers ignore DPI entirely. An image looks the same on screen whether the DPI is 3, 72, or 300. So if you pick a low DPI in Advanced settings expecting the image to look worse, it won't &mdash; because DPI isn't a quality setting.</p>
+    <p class="faq-a">The tool stamps 72 DPI by default, which is fine for FWS digital submissions. Only change it if a specific show's prospectus asks for a different value (for example, 300 DPI for a print-related show). <strong>To actually change how the image looks on screen, change the "Longest side (pixels)" field in Advanced settings, not DPI.</strong></p>
 
     <p class="faq-q">What does "sRGB" mean?</p>
     <p class="faq-a">sRGB is a standard way of representing colors that ensures your painting looks consistent on different screens. The tool converts your image to sRGB automatically.</p>

@@ -313,12 +313,20 @@
     document.getElementById('success-msg').textContent =
       'Your image "' + title + '" is ready to download as: ' + filename;
 
-    // Size warning
-    var sizeWarn = document.getElementById('size-warning');
+    // Warnings: compose any that apply.
+    var warnings = [];
     if (!dims.wasDownscaled) {
-      sizeWarn.textContent =
-        'Note: Your original image (' + dims.longestSide + 'px) is smaller than the recommended ' +
-        targetSize + 'px. The image was not enlarged to avoid losing quality.';
+      warnings.push('Your original image (' + dims.longestSide + 'px) is smaller than the requested ' +
+        targetSize + 'px. The image was not enlarged to avoid losing quality.');
+    }
+    if (patched.size > maxBytes) {
+      warnings.push('The processed file is ' + formatSize(patched.size) +
+        ', which is larger than the ' + formatSize(maxBytes) +
+        ' cap you requested. JPEG quality is already at the minimum — try a smaller longest-side pixel value to fit under the cap.');
+    }
+    var sizeWarn = document.getElementById('size-warning');
+    if (warnings.length > 0) {
+      sizeWarn.textContent = 'Note: ' + warnings.join(' ');
       sizeWarn.style.display = 'block';
     } else {
       sizeWarn.style.display = 'none';

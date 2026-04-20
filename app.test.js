@@ -1142,6 +1142,15 @@ describe('processImage', () => {
     // Size cap of 1 MB forces the quality loop to retry multiple times
     expect(toBlobCalls).toBeGreaterThan(1);
 
+    // The mocked blob stays at 1.5 MB even at the 0.30 quality floor, so the
+    // user's 1 MB cap can't be satisfied. processImage() must surface this
+    // rather than silently ship a file over the requested cap.
+    const warnEl = document.getElementById('size-warning');
+    expect(warnEl.style.display).toBe('block');
+    expect(warnEl.textContent).toContain('1.5 MB');
+    expect(warnEl.textContent).toContain('1.0 MB');
+    expect(warnEl.textContent).toMatch(/cap|minimum|smaller longest-side/i);
+
     document.createElement.mockRestore();
   });
 

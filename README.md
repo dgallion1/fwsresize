@@ -56,7 +56,7 @@ When the user clicks "Prepare My Image," the following steps run in sequence:
 
 3. **Canvas render** — A `<canvas>` element is created at the target dimensions. `ctx.drawImage()` renders the source image scaled to fit. Canvas output is inherently sRGB.
 
-4. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds the parsed max-bytes cap, quality is reduced by 0.05 and retried, clamped to a floor of 0.30.
+4. **JPEG export with size control** — `canvas.toBlob(cb, 'image/jpeg', quality)` produces a baseline JPEG. Starting quality is 0.92. If the blob exceeds the parsed max-bytes cap, quality is reduced by 0.05 and retried, clamped to a floor of 0.30. If the final blob is still over the cap at the floor, a warning is surfaced on the results page so the user knows the cap wasn't met (rather than silently shipping an over-cap file).
 
 5. **DPI metadata stamping** — `patchDPIBytes(bytes, dpi)` directly manipulates the JPEG binary to set the chosen DPI in the JFIF APP0 header:
    - Byte 13: `0x01` (units = dots per inch)
@@ -131,7 +131,7 @@ make clean         # remove node_modules and coverage
 | Statements | 100% |
 | Lines | 100% |
 | Functions | 100% |
-| Branches | 98.63% |
+| Branches | 98.70% |
 
 The single uncovered branch is the UMD module-format detection (`typeof module !== 'undefined'`), which always takes the Node path during testing.
 
