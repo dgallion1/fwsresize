@@ -44,6 +44,7 @@ The application is a zero-dependency, client-side single-page app. Runtime code 
 | `help.html` | User-facing help guide |
 | `app.test.js` | Jest test suite (124 tests) |
 | `Makefile` | Build, test, and run targets |
+| `favicons/` | Favicon sources (SVG + ICO + 16/32/48/180/192/512 PNG) and `build.py` for regeneration |
 
 `app.js` uses a UMD-style IIFE pattern:
 - In the browser: exports to `window.FWSApp`
@@ -218,6 +219,7 @@ mom/
   Dockerfile          # nginx:1.27-alpine image; seds DEPLOY_VERSION into index.html at build
   docker-compose.yml  # Runs the container on $PORT (default 3002)
   default.conf        # nginx cache + security headers (CSP, nosniff, Referrer-Policy, Permissions-Policy)
+  favicons/           # favicon.svg/.ico + PNG sizes (copied to web root by Dockerfile); build.py regenerates
   README.md           # This file
   .gitignore          # Ignores node_modules, coverage
 ```
