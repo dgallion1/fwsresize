@@ -236,6 +236,16 @@ The Makefile computes `VERSION := $(git-sha)-$(timestamp)` locally and passes it
 
 Overrides: `DEPLOY_HOST`, `DEPLOY_PORT`, and `SSH` are all Makefile variables. Default is `spark` over `tailscale ssh` on port `3002`.
 
+#### Cloudflare Web Analytics
+
+Set `CF_ANALYTICS_TOKEN` in your shell before deploying to enable the Cloudflare Web Analytics beacon. The token is created in the Cloudflare dashboard (Web Analytics → Add a site) and is a public beacon ID, not a secret.
+
+```bash
+CF_ANALYTICS_TOKEN=your_beacon_token make docker-deploy
+```
+
+The Dockerfile substitutes the token into `index.html` and `help.html` at build time. When `CF_ANALYTICS_TOKEN` is unset or empty, the entire `<!-- BEGIN CF_ANALYTICS -->...<!-- END CF_ANALYTICS -->` block is removed and no beacon is loaded. The CSP in `default.conf` always allows `https://static.cloudflareinsights.com` (script) and `https://cloudflareinsights.com` (connect) regardless of build-time toggle, so flipping the token on requires only a redeploy.
+
 ### Security
 
 The app is entirely client-side (no server code, no auth, no data storage, no outbound calls), so the attack surface is narrow. Hardening applied:

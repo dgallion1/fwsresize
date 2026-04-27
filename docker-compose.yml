@@ -4,6 +4,7 @@ services:
       context: .
       args:
         VERSION: ${VERSION:-dev}
+        CF_ANALYTICS_TOKEN: ${CF_ANALYTICS_TOKEN:-}
     container_name: fwsresize
     ports:
       - "${PORT:-3002}:80"
