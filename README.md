@@ -1,6 +1,8 @@
-# FWS Image Prep Tool
+# Image Prep for Watercolor Show Submissions
 
-A client-side web application that prepares watercolor painting images for Florida Watercolor Society (FWS) show submissions. Built for Carol Gallion.
+A client-side web application that prepares watercolor painting images for juried-show submissions. Defaults match the Florida Watercolor Society (FWS) published requirements. Built for Carol Gallion.
+
+This is an independent, free utility — not affiliated with, endorsed by, or sponsored by the Florida Watercolor Society or any other organization.
 
 ## For Carol (Non-Technical Users)
 

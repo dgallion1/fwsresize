@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FWS Image Prep</title>
+<title>Image Prep for Watercolor Show Submissions</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
@@ -40,6 +40,18 @@ h1 {
   font-size: 16px;
   margin-bottom: 32px;
 }
+
+.site-footer {
+  max-width: 640px;
+  margin: 48px auto 0;
+  padding: 20px 16px 0;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  color: #a0aec0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.site-footer a { color: #718096; }
 
 /* Steps indicator */
 .steps-bar {
@@ -480,8 +492,8 @@ input[type="file"] { display: none; }
 <body>
 
 <div class="container">
-  <h1>FWS Image Prep</h1>
-  <p class="subtitle">Prepare your paintings for Florida Watercolor Society submissions
+  <h1>Image Prep for Watercolor Show Submissions</h1>
+  <p class="subtitle">Resize and rename painting images to meet juried-show specs (defaults match the Florida Watercolor Society&rsquo;s published requirements)
     <br><a href="help.html" style="font-size:14px; color:#3182ce;">Need help? View the step-by-step guide</a>
   </p>
 
@@ -615,6 +627,13 @@ input[type="file"] { display: none; }
     </div>
   </div>
 </div>
+
+<footer class="site-footer">
+  This is an independent, free utility for resizing painting images. It is
+  not affiliated with, endorsed by, or sponsored by the Florida Watercolor
+  Society or any other organization. All image processing happens in your
+  browser &mdash; nothing is uploaded to a server.
+</footer>
 
 <div class="lightbox" id="lightbox">
   <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close">&times;</button>
