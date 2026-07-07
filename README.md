@@ -248,9 +248,19 @@ CF_ANALYTICS_TOKEN=your_beacon_token make docker-deploy
 
 The Dockerfile substitutes the token into `index.html` and `help.html` at build time. When `CF_ANALYTICS_TOKEN` is unset or empty, the entire `<!-- BEGIN CF_ANALYTICS -->...<!-- END CF_ANALYTICS -->` block is removed and no beacon is loaded. The CSP in `default.conf` always allows `https://static.cloudflareinsights.com` (script) and `https://cloudflareinsights.com` (connect) regardless of build-time toggle, so flipping the token on requires only a redeploy.
 
+#### Plausible Analytics
+
+A self-hosted Plausible beacon (`https://stats.elpasto.app`) is gated by the `PLAUSIBLE_DOMAIN` build arg using the same marker-removal mechanism (`<!-- BEGIN PLAUSIBLE -->...<!-- END PLAUSIBLE -->`). The Makefile defaults it to `fwsresize.app`, so a plain `make docker-deploy` ships the beacon; deploy without it via:
+
+```bash
+PLAUSIBLE_DOMAIN= make docker-deploy
+```
+
+When empty, the script tag is stripped from both HTML files at build time and no analytics load. The CSP in `default.conf` always allows `https://stats.elpasto.app` (script + connect), so toggling requires only a redeploy.
+
 ### Security
 
-The app is entirely client-side (no server code, no auth, no data storage, no outbound calls), so the attack surface is narrow. Hardening applied:
+The app is entirely client-side (no server code, no auth, no data storage; the only outbound calls are the opt-in analytics beacons described above), so the attack surface is narrow. Hardening applied:
 
 - **Content-Security-Policy** (set in `default.conf`) — `script-src 'self'` with no `'unsafe-inline'`, so any future inline-script regression is blocked by the browser. All handlers are wired through `addEventListener` from `initAppHandlers()`; there are zero `on*=` attributes or inline `<script>` blocks. `img-src 'self' blob: data:` covers the preview (data URL) and processed-image (blob URL) flows. `frame-ancestors 'none'` prevents clickjacking embedding; `object-src 'none'` and `base-uri 'self'` close off a couple of small sinks.
 - **Other response headers** — `X-Content-Type-Options: nosniff` (HTML and JS), `Referrer-Policy: no-referrer`, `Permissions-Policy` denying camera/mic/geolocation/FLoC, and `server_tokens off` to hide the nginx version.

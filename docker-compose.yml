@@ -5,6 +5,7 @@ services:
       args:
         VERSION: ${VERSION:-dev}
         CF_ANALYTICS_TOKEN: ${CF_ANALYTICS_TOKEN:-}
+        PLAUSIBLE_DOMAIN: ${PLAUSIBLE_DOMAIN:-}
     container_name: fwsresize
     ports:
       - "${PORT:-3002}:80"

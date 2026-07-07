@@ -3,6 +3,9 @@
 DEPLOY_HOST ?= spark
 DEPLOY_PORT ?= 3002
 SSH ?= tailscale ssh
+# Plausible analytics domain baked in at build time; set empty (PLAUSIBLE_DOMAIN=)
+# to deploy without any analytics beacon.
+PLAUSIBLE_DOMAIN ?= fwsresize.app
 VERSION := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)-$(shell date +%s)
 
 build: node_modules
@@ -26,4 +29,4 @@ docker-deploy:
 		--exclude='.git' \
 		--exclude='.codex' \
 		./ $(DEPLOY_HOST):~/work/mom/
-	$(SSH) $(DEPLOY_HOST) "VERSION=$(VERSION) CF_ANALYTICS_TOKEN=$${CF_ANALYTICS_TOKEN:-} DOCKER_BUILDKIT=1 docker compose -f ~/work/mom/docker-compose.yml build && PORT=$(DEPLOY_PORT) docker compose -f ~/work/mom/docker-compose.yml up -d"
+	$(SSH) $(DEPLOY_HOST) "VERSION=$(VERSION) CF_ANALYTICS_TOKEN=$${CF_ANALYTICS_TOKEN:-} PLAUSIBLE_DOMAIN=$(PLAUSIBLE_DOMAIN) DOCKER_BUILDKIT=1 docker compose -f ~/work/mom/docker-compose.yml build && PORT=$(DEPLOY_PORT) docker compose -f ~/work/mom/docker-compose.yml up -d"

@@ -2,6 +2,7 @@ FROM nginx:1.27-alpine
 
 ARG VERSION=dev
 ARG CF_ANALYTICS_TOKEN=""
+ARG PLAUSIBLE_DOMAIN=""
 
 COPY default.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/index.html
@@ -12,6 +13,13 @@ RUN if [ -n "${CF_ANALYTICS_TOKEN}" ]; then \
         /usr/share/nginx/html/index.html /usr/share/nginx/html/help.html; \
     else \
       sed -i '/<!-- BEGIN CF_ANALYTICS -->/,/<!-- END CF_ANALYTICS -->/d' \
+        /usr/share/nginx/html/index.html /usr/share/nginx/html/help.html; \
+    fi
+RUN if [ -n "${PLAUSIBLE_DOMAIN}" ]; then \
+      sed -i "s|PLAUSIBLE_DOMAIN|${PLAUSIBLE_DOMAIN}|g" \
+        /usr/share/nginx/html/index.html /usr/share/nginx/html/help.html; \
+    else \
+      sed -i '/<!-- BEGIN PLAUSIBLE -->/,/<!-- END PLAUSIBLE -->/d' \
         /usr/share/nginx/html/index.html /usr/share/nginx/html/help.html; \
     fi
 COPY app.js /usr/share/nginx/html/app.js
