@@ -29,4 +29,4 @@ docker-deploy:
 		--exclude='.git' \
 		--exclude='.codex' \
 		./ $(DEPLOY_HOST):~/work/mom/
-	$(SSH) $(DEPLOY_HOST) "VERSION=$(VERSION) CF_ANALYTICS_TOKEN=$${CF_ANALYTICS_TOKEN:-} PLAUSIBLE_DOMAIN=$(PLAUSIBLE_DOMAIN) DOCKER_BUILDKIT=1 docker compose -f ~/work/mom/docker-compose.yml build && PORT=$(DEPLOY_PORT) docker compose -f ~/work/mom/docker-compose.yml up -d"
+	$(SSH) $(DEPLOY_HOST) "VERSION='$(VERSION)' CF_ANALYTICS_TOKEN=$${CF_ANALYTICS_TOKEN:-} PLAUSIBLE_DOMAIN='$(PLAUSIBLE_DOMAIN)' DOCKER_BUILDKIT=1 docker compose -f ~/work/mom/docker-compose.yml build && PORT=$(DEPLOY_PORT) docker compose -f ~/work/mom/docker-compose.yml up -d"
